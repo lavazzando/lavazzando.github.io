@@ -235,7 +235,7 @@
       const MIN_VAL = 0;
       const MAX_VAL = 10;
       const STEP = 5;
-      const RING_COUNT = 30;    // 12 radial zones for transparency
+      const RING_COUNT = 60;    // 12 radial zones for transparency
 
       const N = SIZE * SIZE;
       const values = new Uint8ClampedArray(N);
@@ -268,7 +268,7 @@
         if (ring < 0) ring = 0;
         if (ring >= RING_COUNT) ring = RING_COUNT - 1;
 
-        const outerDominantStart = RING_COUNT - 12; // last 5 rings near border
+        const outerDominantStart = RING_COUNT - 40; // last 5 rings near border
 
         let tMin, tMax; // transparency (0 = opaque, 1 = transparent)
         if (ring >= outerDominantStart) {
