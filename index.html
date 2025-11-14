@@ -26,17 +26,17 @@
       overflow-x: hidden;
     }
 
-    /* 100x100 black square whose center is at the mouse pointer */
-    #cursorRect {
+    /* 100x100 noisy grayscale square whose center is at the mouse pointer */
+    #cursorCanvas {
       position: fixed;
       width: 100px;
       height: 100px;
-      background: #000000;
-      top: 0;
-      left: 0;
-      transform: translate(-50%, -50%); /* center on mouse */
-      pointer-events: none;              /* don’t block clicks */
-      z-index: 1000;                     /* on top of everything */
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%); /* center on mouse coords */
+      pointer-events: none;
+      z-index: 1000; /* on top of everything (can lower if you want it behind) */
+      image-rendering: pixelated;
     }
 
     .frame {
@@ -45,7 +45,7 @@
       padding: 0 1.5rem;
       border: 1px solid var(--border);
       border-radius: 18px;
-      background: rgba(255, 255, 255, 0.92); /* light panel on white */
+      background: rgba(255, 255, 255, 0.92);
       backdrop-filter: blur(6px);
       position: relative;
       z-index: 1;
@@ -251,8 +251,8 @@
   </style>
 </head>
 <body>
-  <!-- 100x100 black square following the mouse (centered on pointer) -->
-  <div id="cursorRect" aria-hidden="true"></div>
+  <!-- 100x100 animated grayscale square following the mouse (centered on pointer) -->
+  <canvas id="cursorCanvas" width="100" height="100" aria-hidden="true"></canvas>
 
   <div class="frame">
     <header>
@@ -360,16 +360,65 @@
   </div>
 
   <script>
-    // Move black square so its center is on the mouse pointer
+    // Animated grayscale noise in a 100x100 canvas, centered on the mouse pointer.
     (function () {
-      const rect = document.getElementById("cursorRect");
+      const canvas = document.getElementById("cursorCanvas");
+      const ctx = canvas.getContext("2d");
 
+      const SIZE = 100;
+      const MIN_VAL = 0;
+      const MAX_VAL = 40;
+      const STEP = 3; // max change per frame per pixel
+
+      // One "value" per pixel (grayscale 0-40)
+      const values = new Uint8ClampedArray(SIZE * SIZE);
+
+      // Start in the middle of the range
+      for (let i = 0; i < values.length; i++) {
+        values[i] = (MIN_VAL + MAX_VAL) / 2;
+      }
+
+      let imageData = ctx.createImageData(SIZE, SIZE);
+      const data = imageData.data; // [r,g,b,a,...]
+
+      function updateNoise() {
+        let idx = 0;
+        for (let y = 0; y < SIZE; y++) {
+          for (let x = 0; x < SIZE; x++) {
+            // Each pixel does a random walk within [MIN_VAL, MAX_VAL]
+            let v = values[idx];
+
+            const delta = Math.floor(Math.random() * (2 * STEP + 1)) - STEP; // -STEP..+STEP
+            v += delta;
+            if (v < MIN_VAL) v = MIN_VAL;
+            if (v > MAX_VAL) v = MAX_VAL;
+            values[idx] = v;
+
+            const base = idx * 4;
+            data[base] = v;     // R
+            data[base + 1] = v; // G
+            data[base + 2] = v; // B
+            data[base + 3] = 255; // A
+
+            idx++;
+          }
+        }
+        ctx.putImageData(imageData, 0, 0);
+        requestAnimationFrame(updateNoise);
+      }
+
+      // Follow the mouse: center of the canvas = mouse position
       function handleMouseMove(e) {
-        rect.style.left = e.clientX + "px";
-        rect.style.top = e.clientY + "px";
+        canvas.style.left = e.clientX + "px";
+        canvas.style.top = e.clientY + "px";
       }
 
       window.addEventListener("mousemove", handleMouseMove);
+
+      // Initial draw + start loop
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 0, SIZE, SIZE);
+      requestAnimationFrame(updateNoise);
     })();
 
     // footer year
@@ -377,4 +426,3 @@
   </script>
 </body>
 </html>
-
