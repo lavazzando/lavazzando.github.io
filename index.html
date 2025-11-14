@@ -197,3 +197,197 @@
         <div>
           <h2>Listen</h2>
           <p>
+            A small selection of recordings. For more, visit my
+            <a href="https://matteotraverso.bandcamp.com/dashboard" target="_blank" rel="noopener">
+              Bandcamp / SoundCloud
+            </a>.
+          </p>
+        </div>
+        <div class="player-shell">
+          <span class="small-label">Featured track</span>
+          <div><strong>Track title – from “Exoplanet”</strong></div>
+          <audio controls>
+            <source src="Lame_serenade_organ_model44.1" type="audio/mpeg" />
+            Your browser does not support the audio element.
+          </audio>
+        </div>
+      </section>
+    </main>
+
+    <footer id="contact">
+      <div>© <span id="year"></span> Matteo Traverso</div>
+      <div>
+        <a href="mailto:matteo.traverso0@2gmail.com">matteo.traverso0@2gmail.com</a> ·
+        <a href="https://instagram.com/yourprofile" target="_blank" rel="noopener">Instagram</a> ·
+        <a href="https://github.com/yourusername" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // Animated grayscale noise with per-pixel fps, 12 radial alpha bands,
+    // darker center / brighter edges, slower changes and 50% swing on refresh rate.
+    (function () {
+      const canvas = document.getElementById("cursorCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const SIZE = 50;          // internal resolution (50x50), scaled to 150x150 by CSS
+      const MIN_VAL = 0;
+      const MAX_VAL = 40;
+      const STEP = 3;
+      const RING_COUNT = 12;    // 12 radial zones for transparency
+
+      const N = SIZE * SIZE;
+      const values = new Uint8ClampedArray(N);
+      const alphas = new Uint8ClampedArray(N);
+
+      const baseIntervals = new Float32Array(N); // base interval per pixel (already slowed)
+      const intervals = new Float32Array(N);     // actual interval with swing
+      const timers = new Float32Array(N);        // elapsed time per pixel
+
+      const distFactors = new Float32Array(N);
+
+      // Distance factor from center: 0 at center, 1 at corners
+      const center = (SIZE - 1) / 2;
+      const maxDist = Math.sqrt(center * center * 2);
+      {
+        let idx = 0;
+        for (let y = 0; y < SIZE; y++) {
+          for (let x = 0; x < SIZE; x++) {
+            const dx = x - center;
+            const dy = y - center;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            distFactors[idx++] = dist / maxDist; // 0..1
+          }
+        }
+      }
+
+      // Transparency bands: inner opaque, outer 5 rings almost fully transparent
+      function randomAlphaForDf(df) {
+        let ring = Math.floor(df * RING_COUNT); // 0..RING_COUNT-1
+        if (ring < 0) ring = 0;
+        if (ring >= RING_COUNT) ring = RING_COUNT - 1;
+
+        const outerDominantStart = RING_COUNT - 5; // last 5 rings near border
+
+        let tMin, tMax; // transparency (0 = opaque, 1 = transparent)
+        if (ring >= outerDominantStart) {
+          // Outer 5 rings: transparency dominant (around 0.7–1.0)
+          const localNorm = (ring - outerDominantStart) /
+                            (RING_COUNT - outerDominantStart - 1 || 1); // 0..1
+          let tBase = 0.7 + 0.3 * localNorm; // 0.7..1.0
+          const jitter = 0.05;
+          tMin = Math.max(0.7, tBase - jitter);
+          tMax = Math.min(1.0, tBase + jitter);
+        } else {
+          // Inner rings: more opaque (0.0–0.7)
+          const innerMaxIndex = outerDominantStart - 1 || 1;
+          const localNorm = ring / innerMaxIndex; // 0..1
+          let tBase = 0.0 + 0.7 * localNorm; // 0..0.7
+          const jitter = 0.05;
+          tMin = Math.max(0.0, tBase - jitter);
+          tMax = Math.min(0.7, tBase + jitter);
+        }
+
+        const t = tMin + Math.random() * (tMax - tMin);
+        const opacity = 1 - t;
+        return Math.round(opacity * 255);
+      }
+
+      // Helper: compute a new interval with ~50% swing around base (±25%)
+      function jitteredInterval(base) {
+        const factor = 0.75 + Math.random() * 0.5; // 0.75 .. 1.25
+        return base * factor;
+      }
+
+      // Init grayscale values, per-pixel (slowed) base rate and alpha
+      for (let i = 0; i < N; i++) {
+        values[i] = (MIN_VAL + MAX_VAL) / 2;
+
+        // Original idea: 4..25 fps; now min 2x slower → start from 2..25
+        const baseFps = 2 + Math.random() * 23; // 2..25
+
+        // We still keep ~3x global slowdown
+        const slowFps = baseFps / 3;           // new slower fps
+        const baseInterval = 1 / slowFps;      // seconds between updates
+
+        baseIntervals[i] = baseInterval;
+        intervals[i] = jitteredInterval(baseInterval); // add 50% swing
+        timers[i] = 0;
+
+        alphas[i] = randomAlphaForDf(distFactors[i]);
+      }
+
+      let imageData = ctx.createImageData(SIZE, SIZE);
+      const data = imageData.data;
+      let lastTime = null;
+
+      function updateNoise(timestamp) {
+        if (lastTime === null) lastTime = timestamp;
+        const dt = (timestamp - lastTime) / 1000; // seconds
+        lastTime = timestamp;
+
+        let idx = 0;
+        for (let y = 0; y < SIZE; y++) {
+          for (let x = 0; x < SIZE; x++) {
+            timers[idx] += dt;
+
+            let v = values[idx];
+
+            // Update this pixel only when its timer exceeds its (jittered) interval
+            if (timers[idx] >= intervals[idx]) {
+              timers[idx] -= intervals[idx];
+
+              // Random walk in grayscale
+              const delta = Math.floor(Math.random() * (2 * STEP + 1)) - STEP; // -STEP..+STEP
+              v += delta;
+              if (v < MIN_VAL) v = MIN_VAL;
+              if (v > MAX_VAL) v = MAX_VAL;
+              values[idx] = v;
+
+              // Transparency update happens at the same rate as color
+              const df = distFactors[idx];
+              alphas[idx] = randomAlphaForDf(df);
+
+              // Re-jitter the refresh interval around base (50% swing range)
+              intervals[idx] = jitteredInterval(baseIntervals[idx]);
+            }
+
+            const base = idx * 4;
+            const df = distFactors[idx]; // 0 (center) .. 1 (edge)
+
+            // --- BRIGHTNESS BIAS ---
+            // edges tend to be brighter, center darker
+            const brightnessBias = df * MAX_VAL; // 0 at center, MAX_VAL at edge
+            const mix = 0.6; // 0 = ignore bias, 1 = only radial bias
+            let dispV = (1 - mix) * values[idx] + mix * brightnessBias;
+            if (dispV < MIN_VAL) dispV = MIN_VAL;
+            if (dispV > MAX_VAL) dispV = MAX_VAL;
+
+            data[base]     = dispV;        // R
+            data[base + 1] = dispV;        // G
+            data[base + 2] = dispV;        // B
+            data[base + 3] = alphas[idx];  // alpha from 12-band radial mapping
+
+            idx++;
+          }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        requestAnimationFrame(updateNoise);
+      }
+
+      // Keep the square centered on the mouse
+      function handleMouseMove(e) {
+        canvas.style.left = e.clientX + "px";
+        canvas.style.top = e.clientY + "px";
+      }
+
+      window.addEventListener("mousemove", handleMouseMove);
+      requestAnimationFrame(updateNoise);
+    })();
+
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
