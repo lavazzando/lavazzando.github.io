@@ -218,7 +218,7 @@
   </div>
 
   <script>
-    // Animated grayscale noise in a 100x100 canvas, centered on the mouse.
+    // Animated grayscale noise with per-pixel fps (4–25) and distance-based opacity
     (function () {
       const canvas = document.getElementById("cursorCanvas");
       const ctx = canvas.getContext("2d");
@@ -228,39 +228,79 @@
       const MAX_VAL = 40;
       const STEP = 3;
 
-      const values = new Uint8ClampedArray(SIZE * SIZE);
-      for (let i = 0; i < values.length; i++) {
+      const N = SIZE * SIZE;
+      const values = new Uint8ClampedArray(N);
+      const intervals = new Float32Array(N); // seconds between updates
+      const timers = new Float32Array(N);    // elapsed time per pixel
+      const distFactors = new Float32Array(N);
+
+      // Init grayscale values and per-pixel update rate (4–25 fps)
+      for (let i = 0; i < N; i++) {
         values[i] = (MIN_VAL + MAX_VAL) / 2;
+        const fps = 4 + Math.random() * 21;  // 4..25 fps
+        intervals[i] = 1 / fps;
+        timers[i] = 0;
+      }
+
+      // Precompute distance factor from center (0 at center, 1 at corners)
+      const center = (SIZE - 1) / 2;
+      const maxDist = Math.sqrt(center * center * 2);
+      {
+        let idx = 0;
+        for (let y = 0; y < SIZE; y++) {
+          for (let x = 0; x < SIZE; x++) {
+            const dx = x - center;
+            const dy = y - center;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            distFactors[idx++] = dist / maxDist; // 0..1
+          }
+        }
       }
 
       let imageData = ctx.createImageData(SIZE, SIZE);
       const data = imageData.data;
+      let lastTime = null;
 
-      function updateNoise() {
+      function updateNoise(timestamp) {
+        if (lastTime === null) lastTime = timestamp;
+        const dt = (timestamp - lastTime) / 1000; // seconds
+        lastTime = timestamp;
+
         let idx = 0;
         for (let y = 0; y < SIZE; y++) {
           for (let x = 0; x < SIZE; x++) {
+            timers[idx] += dt;
+
             let v = values[idx];
-            const delta = Math.floor(Math.random() * (2 * STEP + 1)) - STEP; // -STEP..+STEP
-            v += delta;
-            if (v < MIN_VAL) v = MIN_VAL;
-            if (v > MAX_VAL) v = MAX_VAL;
-            values[idx] = v;
+
+            // Update this pixel only when its timer exceeds its interval
+            if (timers[idx] >= intervals[idx]) {
+              timers[idx] -= intervals[idx];
+              const delta = Math.floor(Math.random() * (2 * STEP + 1)) - STEP; // -STEP..+STEP
+              v += delta;
+              if (v < MIN_VAL) v = MIN_VAL;
+              if (v > MAX_VAL) v = MAX_VAL;
+              values[idx] = v;
+            }
 
             const base = idx * 4;
             data[base] = v;       // R
             data[base + 1] = v;   // G
             data[base + 2] = v;   // B
-            const alpha = Math.round((v / MAX_VAL) * 255);
+
+            const baseAlpha = MAX_VAL === 0 ? 255 : Math.round((v / MAX_VAL) * 255);
+            const alpha = Math.round(baseAlpha * distFactors[idx]); // more opaque farther from center
             data[base + 3] = alpha;
 
             idx++;
           }
         }
+
         ctx.putImageData(imageData, 0, 0);
         requestAnimationFrame(updateNoise);
       }
 
+      // Follow the mouse: center of the canvas = mouse position
       function handleMouseMove(e) {
         canvas.style.left = e.clientX + "px";
         canvas.style.top = e.clientY + "px";
