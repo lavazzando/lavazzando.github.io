@@ -15,8 +15,7 @@
       margin:0;min-height:100vh;background:#fff;color:var(--fg);
       font-family:var(--font-sans);overflow-x:hidden;
     }
-    /* Animated noisy square centered on mouse */
-    /* Canvas internal res: 50x50; displayed size: 100x100 → zoomed pixels */
+    /* Animated noisy square centered on mouse (50x50 pixels → scaled to 100x100) */
     #cursorCanvas{
       position:fixed;
       width:100px;
@@ -223,115 +222,153 @@
       </div>
     </footer>
   </div>
-<script>
-  // Animated grayscale noise with per-pixel fps (4–25),
-  // opacity highest at center, brightness higher towards edges.
-  (function () {
-    const canvas = document.getElementById("cursorCanvas");
-    const ctx = canvas.getContext("2d");
 
-    const SIZE = 50;          // internal resolution (50x50), scaled to 100x100 by CSS
-    const MIN_VAL = 0;
-    const MAX_VAL = 40;
-    const STEP = 3;
+  <script>
+    // Animated grayscale noise with per-pixel fps (4–25),
+    // darker center, brighter edges, and transparency ranges by distance.
+    (function () {
+      const canvas = document.getElementById("cursorCanvas");
+      const ctx = canvas.getContext("2d");
 
-    const N = SIZE * SIZE;
-    const values = new Uint8ClampedArray(N);
-    const intervals = new Float32Array(N); // seconds between updates
-    const timers = new Float32Array(N);    // elapsed time per pixel
-    const distFactors = new Float32Array(N);
+      const SIZE = 50;          // internal resolution (50x50), scaled to 100x100 by CSS
+      const MIN_VAL = 0;
+      const MAX_VAL = 40;
+      const STEP = 3;
 
-    // Init grayscale values and per-pixel update rate (4–25 fps)
-    for (let i = 0; i < N; i++) {
-      values[i] = (MIN_VAL + MAX_VAL) / 2;
-      const fps = 4 + Math.random() * 21;  // 4..25 fps
-      intervals[i] = 1 / fps;
-      timers[i] = 0;
-    }
+      const N = SIZE * SIZE;
+      const values = new Uint8ClampedArray(N);
+      const alphas = new Uint8ClampedArray(N);
+      const intervals = new Float32Array(N); // seconds between updates
+      const timers = new Float32Array(N);    // elapsed time per pixel
+      const distFactors = new Float32Array(N);
 
-    // Distance factor from center: 0 at center, 1 at corners
-    const center = (SIZE - 1) / 2;
-    const maxDist = Math.sqrt(center * center * 2);
-    {
-      let idx = 0;
-      for (let y = 0; y < SIZE; y++) {
-        for (let x = 0; x < SIZE; x++) {
-          const dx = x - center;
-          const dy = y - center;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          distFactors[idx++] = dist / maxDist; // 0..1
-        }
-      }
-    }
-
-    let imageData = ctx.createImageData(SIZE, SIZE);
-    const data = imageData.data;
-    let lastTime = null;
-    const edgeMin = 0.05; // ~5% opacity at border
-
-    function updateNoise(timestamp) {
-      if (lastTime === null) lastTime = timestamp;
-      const dt = (timestamp - lastTime) / 1000; // seconds
-      lastTime = timestamp;
-
-      let idx = 0;
-      for (let y = 0; y < SIZE; y++) {
-        for (let x = 0; x < SIZE; x++) {
-          timers[idx] += dt;
-
-          let v = values[idx];
-
-          // Update this pixel only when its timer exceeds its interval
-          if (timers[idx] >= intervals[idx]) {
-            timers[idx] -= intervals[idx];
-            const delta = Math.floor(Math.random() * (2 * STEP + 1)) - STEP; // -STEP..+STEP
-            v += delta;
-            if (v < MIN_VAL) v = MIN_VAL;
-            if (v > MAX_VAL) v = MAX_VAL;
-            values[idx] = v;
+      // Distance factor from center: 0 at center, 1 at corners
+      const center = (SIZE - 1) / 2;
+      const maxDist = Math.sqrt(center * center * 2);
+      {
+        let idx = 0;
+        for (let y = 0; y < SIZE; y++) {
+          for (let x = 0; x < SIZE; x++) {
+            const dx = x - center;
+            const dy = y - center;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            distFactors[idx++] = dist / maxDist; // 0..1
           }
-
-          const base = idx * 4;
-          const df = distFactors[idx]; // 0 (center) .. 1 (edge)
-
-          // --- BRIGHTNESS BIAS ---
-          // edges tend to MAX_VAL, center tends to MIN_VAL
-          const brightnessBias = df * MAX_VAL; // 0 at center, MAX_VAL at edge
-          const mix = 0.6; // 0 = ignore bias, 1 = only radial bias
-          let dispV = (1 - mix) * v + mix * brightnessBias;
-          if (dispV < MIN_VAL) dispV = MIN_VAL;
-          if (dispV > MAX_VAL) dispV = MAX_VAL;
-
-          data[base]     = dispV; // R
-          data[base + 1] = dispV; // G
-          data[base + 2] = dispV; // B
-
-          // baseAlpha from displayed brightness
-          const baseAlpha = MAX_VAL === 0 ? 255 : Math.round((dispV / MAX_VAL) * 255);
-          // opacity: 1 at center, edgeMin at border
-          const alphaFactor = edgeMin + (1 - edgeMin) * (1 - df);
-          const alpha = Math.round(baseAlpha * alphaFactor);
-          data[base + 3] = alpha;
-
-          idx++;
         }
       }
 
-      ctx.putImageData(imageData, 0, 0);
+      // Init grayscale values, per-pixel update rate (4–25 fps) and initial alpha
+      for (let i = 0; i < N; i++) {
+        values[i] = (MIN_VAL + MAX_VAL) / 2;
+        const fps = 4 + Math.random() * 21;  // 4..25 fps
+        intervals[i] = 1 / fps;
+        timers[i] = 0;
+
+        const df = distFactors[i];
+        let tMin, tMax; // transparency range (0 = opaque, 1 = fully transparent)
+
+        if (df >= 0.75) {
+          // outer ring: 100–75% transparent
+          tMin = 0.75;
+          tMax = 1.0;
+        } else if (df >= 0.25) {
+          // middle ring: 75–38% transparent
+          tMin = 0.38;
+          tMax = 0.75;
+        } else {
+          // inner ring: 38–0% transparent
+          tMin = 0.0;
+          tMax = 0.38;
+        }
+
+        const t = tMin + Math.random() * (tMax - tMin); // pick a transparency within the band
+        const opacity = 1 - t;                          // convert to opacity
+        alphas[i] = Math.round(opacity * 255);
+      }
+
+      let imageData = ctx.createImageData(SIZE, SIZE);
+      const data = imageData.data;
+      let lastTime = null;
+
+      function updateNoise(timestamp) {
+        if (lastTime === null) lastTime = timestamp;
+        const dt = (timestamp - lastTime) / 1000; // seconds
+        lastTime = timestamp;
+
+        let idx = 0;
+        for (let y = 0; y < SIZE; y++) {
+          for (let x = 0; x < SIZE; x++) {
+            timers[idx] += dt;
+
+            let v = values[idx];
+
+            // Update this pixel only when its timer exceeds its interval
+            if (timers[idx] >= intervals[idx]) {
+              timers[idx] -= intervals[idx];
+              const delta = Math.floor(Math.random() * (2 * STEP + 1)) - STEP; // -STEP..+STEP
+              v += delta;
+              if (v < MIN_VAL) v = MIN_VAL;
+              if (v > MAX_VAL) v = MAX_VAL;
+              values[idx] = v;
+
+              // On color update, also update transparency within its radial band
+              const df = distFactors[idx];
+              let tMin, tMax;
+
+              if (df >= 0.75) {
+                // outer ring: 100–75% transparent
+                tMin = 0.75;
+                tMax = 1.0;
+              } else if (df >= 0.25) {
+                // middle ring: 75–38% transparent
+                tMin = 0.38;
+                tMax = 0.75;
+              } else {
+                // inner ring: 38–0% transparent
+                tMin = 0.0;
+                tMax = 0.38;
+              }
+
+              const t = tMin + Math.random() * (tMax - tMin);
+              const opacity = 1 - t;
+              alphas[idx] = Math.round(opacity * 255);
+            }
+
+            const base = idx * 4;
+            const df = distFactors[idx]; // 0 (center) .. 1 (edge)
+
+            // --- BRIGHTNESS BIAS ---
+            // edges tend to be brighter, center darker
+            const brightnessBias = df * MAX_VAL; // 0 at center, MAX_VAL at edge
+            const mix = 0.6; // 0 = ignore bias, 1 = only radial bias
+            let dispV = (1 - mix) * values[idx] + mix * brightnessBias;
+            if (dispV < MIN_VAL) dispV = MIN_VAL;
+            if (dispV > MAX_VAL) dispV = MAX_VAL;
+
+            data[base]     = dispV; // R
+            data[base + 1] = dispV; // G
+            data[base + 2] = dispV; // B
+            data[base + 3] = alphas[idx]; // alpha set by radial band + random within band
+
+            idx++;
+          }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        requestAnimationFrame(updateNoise);
+      }
+
+      // Keep the square centered on the mouse
+      function handleMouseMove(e) {
+        canvas.style.left = e.clientX + "px";
+        canvas.style.top = e.clientY + "px";
+      }
+
+      window.addEventListener("mousemove", handleMouseMove);
       requestAnimationFrame(updateNoise);
-    }
+    })();
 
-    // Keep the square centered on the mouse
-    function handleMouseMove(e) {
-      canvas.style.left = e.clientX + "px";
-      canvas.style.top = e.clientY + "px";
-    }
-
-    window.addEventListener("mousemove", handleMouseMove);
-    requestAnimationFrame(updateNoise);
-  })();
-
-  document.getElementById("year").textContent = new Date().getFullYear();
-</script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>
