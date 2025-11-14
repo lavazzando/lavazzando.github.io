@@ -1,4 +1,230 @@
-<script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Matteo Traverso – Sound Artist</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg:#fff;--fg:#111;--muted:#555;--accent:#ff4f9a;--border:#ccc;
+      --font-sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      --font-mono:"SF Mono",ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    }
+    *{box-sizing:border-box;}
+    body{
+      margin:0;min-height:100vh;background:#fff;color:var(--fg);
+      font-family:var(--font-sans);overflow-x:hidden;
+    }
+    /* Animated noisy square centered on mouse */
+    /* Canvas internal res: 50x50; displayed size: 100x100 → zoomed pixels */
+    #cursorCanvas{
+      position:fixed;
+      width:100px;
+      height:100px;
+      top:50%;
+      left:50%;
+      transform:translate(-50%,-50%);
+      pointer-events:none;
+      z-index:1000;
+      image-rendering:pixelated;
+    }
+    .frame{
+      max-width:1100px;margin:2.5rem auto 3rem;padding:0 1.5rem;
+      border:1px solid var(--border);border-radius:18px;
+      background:rgba(255,255,255,0.92);backdrop-filter:blur(6px);
+      position:relative;z-index:1;
+    }
+    header{
+      padding:1.5rem 1.5rem 1rem;border-bottom:1px solid var(--border);
+      display:flex;flex-wrap:wrap;gap:1rem 2rem;align-items:baseline;
+      justify-content:space-between;
+    }
+    .site-title{
+      font-family:var(--font-mono);font-size:.95rem;
+      letter-spacing:.12em;text-transform:uppercase;
+    }
+    .site-title span{
+      background:linear-gradient(90deg,#ffb347,#ff4f9a,#6ea8ff);
+      -webkit-background-clip:text;background-clip:text;color:transparent;
+    }
+    .tagline{font-size:.9rem;color:var(--muted);max-width:25rem;}
+    nav{
+      display:flex;gap:1.2rem;font-size:.85rem;
+      text-transform:uppercase;letter-spacing:.12em;
+    }
+    nav a{
+      color:var(--muted);text-decoration:none;position:relative;
+    }
+    nav a::after{
+      content:"";position:absolute;left:0;bottom:-.1rem;width:0;height:1px;
+      background:var(--accent);transition:width 150ms ease;
+    }
+    nav a:hover{color:var(--fg);}
+    nav a:hover::after{width:100%;}
+    main{padding:1.5rem;}
+    .layout{
+      display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr);
+      gap:2rem;
+    }
+    @media(max-width:800px){.layout{grid-template-columns:1fr;}}
+    .intro h1{font-size:clamp(2.2rem,4vw,2.8rem);margin:0 0 .75rem;}
+    .intro p{margin:0 0 .75rem;color:var(--muted);font-size:.98rem;}
+    .meta-list{
+      list-style:none;padding:0;margin:1.2rem 0 0;font-size:.85rem;
+      color:var(--muted);
+    }
+    .meta-list li{margin-bottom:.2rem;}
+    .meta-label{
+      text-transform:uppercase;letter-spacing:.16em;font-size:.72rem;
+      color:#888;display:inline-block;margin-right:.5rem;
+    }
+    .project-grid{
+      display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+      gap:1rem;
+    }
+    .project-card{
+      border-radius:14px;border:1px solid var(--border);background:#f5f5f5;
+      padding:.9rem;min-height:140px;display:flex;flex-direction:column;
+      justify-content:flex-end;cursor:pointer;text-decoration:none;color:inherit;
+    }
+    .project-card:hover{
+      border-color:var(--accent);box-shadow:0 0 0 1px rgba(255,79,154,.4);
+    }
+    .project-tag{
+      font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;
+      color:var(--muted);margin-bottom:.35rem;
+    }
+    .project-title{font-size:.95rem;font-weight:600;}
+    .project-meta{font-size:.78rem;color:var(--muted);margin-top:.2rem;}
+    .listen-block{
+      margin-top:2.5rem;border-top:1px solid var(--border);padding-top:1.25rem;
+      display:grid;gap:1rem;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);
+      align-items:flex-start;
+    }
+    @media(max-width:800px){.listen-block{grid-template-columns:1fr;}}
+    .listen-block h2{
+      font-size:1rem;text-transform:uppercase;letter-spacing:.16em;
+      margin:0 0 .5rem;
+    }
+    .listen-block p{margin:0 0 .5rem;font-size:.9rem;color:var(--muted);}
+    .player-shell{
+      border-radius:14px;border:1px solid var(--border);padding:.8rem .9rem;
+      background:#f8f8f8;font-size:.85rem;
+    }
+    audio{width:100%;margin-top:.55rem;}
+    .small-label{
+      font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;
+      color:#808080;display:block;margin-bottom:.3rem;
+    }
+    footer{
+      padding:0 1.5rem 1.5rem;border-top:1px solid var(--border);
+      font-size:.78rem;color:var(--muted);display:flex;flex-wrap:wrap;
+      justify-content:space-between;gap:.75rem;
+    }
+    footer a{color:var(--muted);text-decoration:none;}
+    footer a:hover{color:var(--fg);text-decoration:underline;}
+  </style>
+</head>
+<body>
+  <!-- 100x100 visual square (50x50 internal pixels) following the mouse -->
+  <canvas id="cursorCanvas" width="50" height="50" aria-hidden="true"></canvas>
+
+  <div class="frame">
+    <header>
+      <div>
+        <div class="site-title"><span>Matteo Traverso</span></div>
+        <div class="tagline">
+          Sound artist / violinist working with improvisation, spatial audio and fragile electronic textures.
+        </div>
+      </div>
+      <nav>
+        <a href="#works">Works</a>
+        <a href="#listen">Listen</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </header>
+
+    <main>
+      <div class="layout">
+        <section class="intro" id="about">
+          <h1>Beyond acoustic resolution.</h1>
+          <p>
+            I work with violins, electronics and installation to explore unstable listening situations,
+            glitches, and almost-imperceptible changes in sound. My practice moves between concert,
+            exhibition and research, often in collaboration with other artists and scientists.
+          </p>
+          <p>
+            I am currently based in Köln, working on performances and sound installations around
+            quantum-inspired soundscapes and extended string techniques.
+          </p>
+          <ul class="meta-list">
+            <li><span class="meta-label">Based in</span>Köln / NRW / Europe</li>
+            <li><span class="meta-label">Practices</span>sound art, improvisation, AV performance, installation</li>
+            <li><span class="meta-label">Contact</span>
+              <a href="mailto:matteo.traverso0@2gmail.com">matteo.traverso0@2gmail.com</a>
+            </li>
+          </ul>
+        </section>
+
+        <section id="works" aria-label="Selected works">
+          <div class="project-grid">
+            <a class="project-card" href="projects/exoplanet.html">
+              <div class="project-tag">AV performance</div>
+              <div class="project-title">EXOPLANET</div>
+              <div class="project-meta">improvised quintet · planetarium setting</div>
+            </a>
+            <a class="project-card" href="projects/probe-the-oracle.html">
+              <div class="project-tag">Violin & algorithm duet</div>
+              <div class="project-title">PROBE THE ORACLE</div>
+              <div class="project-meta">machine listening · concatenative synthesis</div>
+            </a>
+            <a class="project-card" href="projects/harsh-coziness.html">
+              <div class="project-tag">Performance</div>
+              <div class="project-title">HARSH COZINESS</div>
+              <div class="project-meta">DIY feedback objects · small speakers</div>
+            </a>
+            <a class="project-card" href="projects/installations.html">
+              <div class="project-tag">Installation</div>
+              <div class="project-title">INSTALLATIONS</div>
+              <div class="project-meta">ongoing research in spatial sound</div>
+            </a>
+          </div>
+        </section>
+      </div>
+
+      <section class="listen-block" id="listen">
+        <div>
+          <h2>Listen</h2>
+          <p>
+            A small selection of recordings. For more, visit my
+            <a href="https://matteotraverso.bandcamp.com/dashboard" target="_blank" rel="noopener">
+              Bandcamp / SoundCloud
+            </a>.
+          </p>
+        </div>
+        <div class="player-shell">
+          <span class="small-label">Featured track</span>
+          <div><strong>Track title – from “Exoplanet”</strong></div>
+          <audio controls>
+            <source src="Lame_serenade_organ_model44.1" type="audio/mpeg" />
+            Your browser does not support the audio element.
+          </audio>
+        </div>
+      </section>
+    </main>
+
+    <footer id="contact">
+      <div>© <span id="year"></span> Matteo Traverso</div>
+      <div>
+        <a href="mailto:matteo.traverso0@2gmail.com">matteo.traverso0@2gmail.com</a> ·
+        <a href="https://instagram.com/yourprofile" target="_blank" rel="noopener">Instagram</a> ·
+        <a href="https://github.com/yourusername" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </footer>
+  </div>
+
+  <script>
   // Animated grayscale noise with per-pixel fps (4–25),
   // opacity highest at center, brightness higher towards edges.
   (function () {
@@ -107,4 +333,7 @@
   })();
 
   document.getElementById("year").textContent = new Date().getFullYear();
-</script>
+
+  </script>
+</body>
+</html>
