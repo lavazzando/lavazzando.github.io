@@ -268,7 +268,7 @@
         if (ring < 0) ring = 0;
         if (ring >= RING_COUNT) ring = RING_COUNT - 1;
 
-        const outerDominantStart = RING_COUNT - 5; // last 5 rings near border
+        const outerDominantStart = RING_COUNT - 12; // last 5 rings near border
 
         let tMin, tMax; // transparency (0 = opaque, 1 = transparent)
         if (ring >= outerDominantStart) {
