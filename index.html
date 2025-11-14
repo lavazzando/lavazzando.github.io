@@ -15,11 +15,18 @@
       margin:0;min-height:100vh;background:#fff;color:var(--fg);
       font-family:var(--font-sans);overflow-x:hidden;
     }
-    /* 100x100 animated grayscale square centered on mouse */
+    /* Animated noisy square centered on mouse */
+    /* Canvas internal res: 50x50; displayed size: 100x100 → zoomed pixels */
     #cursorCanvas{
-      position:fixed;width:100px;height:100px;
-      top:50%;left:50%;transform:translate(-50%,-50%);
-      pointer-events:none;z-index:1000;image-rendering:pixelated;
+      position:fixed;
+      width:100px;
+      height:100px;
+      top:50%;
+      left:50%;
+      transform:translate(-50%,-50%);
+      pointer-events:none;
+      z-index:1000;
+      image-rendering:pixelated;
     }
     .frame{
       max-width:1100px;margin:2.5rem auto 3rem;padding:0 1.5rem;
@@ -119,8 +126,8 @@
   </style>
 </head>
 <body>
-  <!-- 100x100 animated grayscale square following the mouse (centered) -->
-  <canvas id="cursorCanvas" width="100" height="100" aria-hidden="true"></canvas>
+  <!-- 100x100 visual square (50x50 internal pixels) following the mouse -->
+  <canvas id="cursorCanvas" width="50" height="50" aria-hidden="true"></canvas>
 
   <div class="frame">
     <header>
@@ -218,12 +225,12 @@
   </div>
 
   <script>
-    // Animated grayscale noise with per-pixel fps (4–25) and distance-based opacity
+    // Animated grayscale noise with per-pixel fps (4–25) and opacity highest at center.
     (function () {
       const canvas = document.getElementById("cursorCanvas");
       const ctx = canvas.getContext("2d");
 
-      const SIZE = 100;
+      const SIZE = 50;          // internal resolution (50x50), scaled to 100x100 by CSS
       const MIN_VAL = 0;
       const MAX_VAL = 40;
       const STEP = 3;
@@ -242,7 +249,7 @@
         timers[i] = 0;
       }
 
-      // Precompute distance factor from center (0 at center, 1 at corners)
+      // Distance factor from center: 0 at center, 1 at corners
       const center = (SIZE - 1) / 2;
       const maxDist = Math.sqrt(center * center * 2);
       {
@@ -260,6 +267,7 @@
       let imageData = ctx.createImageData(SIZE, SIZE);
       const data = imageData.data;
       let lastTime = null;
+      const edgeMin = 0.05; // ~5% opacity at border
 
       function updateNoise(timestamp) {
         if (lastTime === null) lastTime = timestamp;
@@ -288,8 +296,12 @@
             data[base + 1] = v;   // G
             data[base + 2] = v;   // B
 
+            // baseAlpha from grayscale value
             const baseAlpha = MAX_VAL === 0 ? 255 : Math.round((v / MAX_VAL) * 255);
-            const alpha = Math.round(baseAlpha * distFactors[idx]); // more opaque farther from center
+            // opacity factor: 1 at center, edgeMin at border
+            const df = distFactors[idx]; // 0..1
+            const alphaFactor = edgeMin + (1 - edgeMin) * (1 - df);
+            const alpha = Math.round(baseAlpha * alphaFactor);
             data[base + 3] = alpha;
 
             idx++;
@@ -300,7 +312,7 @@
         requestAnimationFrame(updateNoise);
       }
 
-      // Follow the mouse: center of the canvas = mouse position
+      // Keep the square centered on the mouse
       function handleMouseMove(e) {
         canvas.style.left = e.clientX + "px";
         canvas.style.top = e.clientY + "px";
