@@ -268,7 +268,7 @@
         if (ring < 0) ring = 0;
         if (ring >= RING_COUNT) ring = RING_COUNT - 1;
 
-        const outerDominantStart = RING_COUNT - 40; // last 5 rings near border
+        const outerDominantStart = RING_COUNT - 20; // last 5 rings near border
 
         let tMin, tMax; // transparency (0 = opaque, 1 = transparent)
         if (ring >= outerDominantStart) {
@@ -284,9 +284,9 @@
           const innerMaxIndex = outerDominantStart - 1 || 1;
           const localNorm = ring / innerMaxIndex; // 0..1
           let tBase = 0.0 + 0.7 * localNorm; // 0..0.7
-          const jitter = 0.05;
+          const jitter = 0.0005;
           tMin = Math.max(0.0, tBase - jitter);
-          tMax = Math.min(0.7, tBase + jitter);
+          tMax = Math.min(0.1, tBase + jitter);
         }
 
         const t = tMin + Math.random() * (tMax - tMin);
