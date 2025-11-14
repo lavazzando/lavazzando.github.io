@@ -6,11 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
-      --bg: #050608;
-      --fg: #f5f5f5;
-      --muted: #9f9f9f;
+      --bg: #ffffff;
+      --fg: #111111;
+      --muted: #555555;
       --accent: #ff4f9a;
-      --border: #2b2b2b;
+      --border: #cccccc;
       --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       --font-mono: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
@@ -20,22 +20,23 @@
     body {
       margin: 0;
       min-height: 100vh;
-      background: #ffffff; /* pure white behind the canvas */
+      background: #ffffff; /* completely white background */
       color: var(--fg);
       font-family: var(--font-sans);
       overflow-x: hidden;
     }
 
-    /* Background canvas (720x480, scaled to viewport) */
-    #bgCanvas {
+    /* 100x100 black square whose center is at the mouse pointer */
+    #cursorRect {
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 100vw;
-      height: 100vh;
-      display: block;
-      z-index: 0;
+      width: 100px;
+      height: 100px;
+      background: #000000;
+      top: 0;
+      left: 0;
+      transform: translate(-50%, -50%); /* center on mouse */
+      pointer-events: none;              /* don’t block clicks */
+      z-index: 1000;                     /* on top of everything */
     }
 
     .frame {
@@ -44,11 +45,12 @@
       padding: 0 1.5rem;
       border: 1px solid var(--border);
       border-radius: 18px;
-      background: rgba(5, 6, 10, 0.92);
-      backdrop-filter: blur(8px);
+      background: rgba(255, 255, 255, 0.92); /* light panel on white */
+      backdrop-filter: blur(6px);
       position: relative;
-      z-index: 1; /* content above canvas */
+      z-index: 1;
     }
+
     header {
       padding: 1.5rem 1.5rem 1rem;
       border-bottom: 1px solid var(--border);
@@ -139,7 +141,7 @@
       text-transform: uppercase;
       letter-spacing: 0.16em;
       font-size: 0.72rem;
-      color: #7b7b7b;
+      color: #888888;
       display: inline-block;
       margin-right: 0.5rem;
     }
@@ -153,7 +155,7 @@
       border-radius: 14px;
       overflow: hidden;
       border: 1px solid var(--border);
-      background: radial-gradient(circle at top left, #202437 0, #050608 55%);
+      background: #f5f5f5;
       padding: 0.9rem;
       min-height: 140px;
       display: flex;
@@ -165,7 +167,7 @@
     }
     .project-card:hover {
       border-color: var(--accent);
-      box-shadow: 0 0 0 1px rgba(255,79,154,0.5);
+      box-shadow: 0 0 0 1px rgba(255,79,154,0.4);
     }
     .project-tag {
       font-size: 0.7rem;
@@ -183,20 +185,7 @@
       color: var(--muted);
       margin-top: 0.2rem;
     }
-    .project-noise {
-      position: absolute;
-      inset: 0;
-      mix-blend-mode: soft-light;
-      opacity: 0.55;
-      pointer-events: none;
-      background-image: repeating-linear-gradient(
-        135deg,
-        rgba(255,255,255,0.06) 0,
-        rgba(255,255,255,0.06) 1px,
-        transparent 1px,
-        transparent 3px
-      );
-    }
+
     .listen-block {
       margin-top: 2.5rem;
       border-top: 1px solid var(--border);
@@ -208,4 +197,184 @@
     }
     @media (max-width: 800px) {
       .listen-block {
-        g
+        grid-template-columns: 1fr;
+      }
+    }
+    .listen-block h2 {
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      margin: 0 0 0.5rem;
+    }
+    .listen-block p {
+      margin: 0 0 0.5rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .player-shell {
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 0.8rem 0.9rem;
+      background: #f8f8f8;
+      font-size: 0.85rem;
+    }
+    audio {
+      width: 100%;
+      margin-top: 0.55rem;
+    }
+    .small-label {
+      font-size: 0.72rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #808080;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+    footer {
+      padding: 0 1.5rem 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.78rem;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    footer a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+    footer a:hover {
+      color: var(--fg);
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <!-- 100x100 black square following the mouse (centered on pointer) -->
+  <div id="cursorRect" aria-hidden="true"></div>
+
+  <div class="frame">
+    <header>
+      <div>
+        <div class="site-title">
+          <span>Matteo Traverso</span>
+        </div>
+        <div class="tagline">
+          Sound artist / violinist working with improvisation, spatial audio and fragile electronic textures.
+        </div>
+      </div>
+      <nav>
+        <a href="#works">Works</a>
+        <a href="#listen">Listen</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </header>
+
+    <main>
+      <div class="layout">
+        <!-- LEFT COLUMN: INTRO -->
+        <section class="intro" id="about">
+          <h1>Beyond acoustic resolution.</h1>
+          <p>
+            I work with violins, electronics and installation to explore unstable listening situations,
+            glitches, and almost-imperceptible changes in sound. My practice moves between concert,
+            exhibition and research, often in collaboration with other artists and scientists.
+          </p>
+          <p>
+            I am currently based in Köln, working on performances and sound installations around
+            quantum-inspired soundscapes and extended string techniques.
+          </p>
+          <ul class="meta-list">
+            <li><span class="meta-label">Based in</span>Köln / NRW / Europe</li>
+            <li><span class="meta-label">Practices</span>sound art, improvisation, AV performance, installation</li>
+            <li>
+              <span class="meta-label">Contact</span>
+              <a href="mailto:matteo.traverso0@2gmail.com">matteo.traverso0@2gmail.com</a>
+            </li>
+          </ul>
+        </section>
+
+        <!-- RIGHT COLUMN: WORK GRID -->
+        <section id="works" aria-label="Selected works">
+          <div class="project-grid">
+            <a class="project-card" href="projects/exoplanet.html">
+              <div class="project-tag">AV performance</div>
+              <div class="project-title">EXOPLANET</div>
+              <div class="project-meta">improvised quintet · planetarium setting</div>
+            </a>
+
+            <a class="project-card" href="projects/probe-the-oracle.html">
+              <div class="project-tag">Violin & algorithm duet</div>
+              <div class="project-title">PROBE THE ORACLE</div>
+              <div class="project-meta">machine listening · concatenative synthesis</div>
+            </a>
+
+            <a class="project-card" href="projects/harsh-coziness.html">
+              <div class="project-tag">Performance</div>
+              <div class="project-title">HARSH COZINESS</div>
+              <div class="project-meta">DIY feedback objects · small speakers</div>
+            </a>
+
+            <a class="project-card" href="projects/installations.html">
+              <div class="project-tag">Installation</div>
+              <div class="project-title">INSTALLATIONS</div>
+              <div class="project-meta">ongoing research in spatial sound</div>
+            </a>
+          </div>
+        </section>
+      </div>
+
+      <!-- LISTEN SECTION -->
+      <section class="listen-block" id="listen">
+        <div>
+          <h2>Listen</h2>
+          <p>
+            A small selection of recordings. For more, visit my
+            <a href="https://matteotraverso.bandcamp.com/dashboard" target="_blank" rel="noopener">
+              Bandcamp / SoundCloud
+            </a>.
+          </p>
+        </div>
+
+        <div class="player-shell">
+          <span class="small-label">Featured track</span>
+          <div><strong>Track title – from “Exoplanet”</strong></div>
+          <audio controls>
+            <source src="Lame_serenade_organ_model44.1" type="audio/mpeg" />
+            Your browser does not support the audio element.
+          </audio>
+        </div>
+      </section>
+    </main>
+
+    <footer id="contact">
+      <div>© <span id="year"></span> Matteo Traverso</div>
+      <div>
+        <a href="mailto:matteo.traverso0@2gmail.com">matteo.traverso0@2gmail.com</a> ·
+        <a href="https://instagram.com/yourprofile" target="_blank" rel="noopener">Instagram</a> ·
+        <a href="https://github.com/yourusername" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // Move black square so its center is on the mouse pointer
+    (function () {
+      const rect = document.getElementById("cursorRect");
+
+      function handleMouseMove(e) {
+        rect.style.left = e.clientX + "px";
+        rect.style.top = e.clientY + "px";
+      }
+
+      window.addEventListener("mousemove", handleMouseMove);
+    })();
+
+    // footer year
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
+
