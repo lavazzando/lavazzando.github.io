@@ -243,9 +243,6 @@
       image-rendering: pixelated;
       pointer-events: none; /* don't block clicks */
     }
-  </style>
-<canvas id="grad-square" width="50" height="50"></canvas>
-
   <script>
     const canvas = document.getElementById("grad-square");
     const ctx = canvas.getContext("2d");
@@ -253,34 +250,97 @@
     const cols = 10;
     const rows = 10;
     const cellSize = 5; // 10 * 5 = 50 px
+    const N = cols * rows;
 
-    // Centro in coordinate "celle" (0..9)
-    const cx = (cols - 1) / 2; // 4.5
-    const cy = (rows - 1) / 2; // 4.5
-    // Distanza massima dal centro a un angolo
+    // Radial base alpha (center = 1, border = 0)
+    const baseAlpha = new Float32Array(N);
+    const currentAlpha = new Float32Array(N);
+
+    // Per-pixel timing
+    const intervals = new Float32Array(N); // seconds between updates
+    const timers = new Float32Array(N);
+
+    const minFps = 10;
+    const maxFps = 40;
+
+    // Center in grid coordinates
+    const cx = (cols - 1) / 2;
+    const cy = (rows - 1) / 2;
     const maxDist = Math.sqrt(cx * cx + cy * cy);
 
-    function drawRadialGrid() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Initialize base radial alpha and timing
+    let idx = 0;
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const dx = x - cx;
+        const dy = y - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        let t = dist / maxDist;       // 0 center → 1 border
+        if (t > 1) t = 1;
+        baseAlpha[idx] = 1 - t;       // 1 center → 0 border
 
+        // Random fps 10–40 per pixel
+        const fps = minFps + Math.random() * (maxFps - minFps);
+        intervals[idx] = 1 / fps;
+        timers[idx] = Math.random() * intervals[idx]; // random phase
+
+        // Initial alpha with random multiplier 0–1
+        currentAlpha[idx] = baseAlpha[idx] * Math.random();
+
+        idx++;
+      }
+    }
+
+    function update(dt) {
+      let i = 0;
       for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
-          const dx = x - cx;
-          const dy = y - cy;
-          const dist = Math.sqrt(dx * dx + dy * dy); // 0..maxDist
-          let t = dist / maxDist;                    // 0 centro → 1 bordo
-          if (t > 1) t = 1;
-          const alpha = 1 - t;                       // centro opaco → bordo trasparente
+          timers[i] += dt;
 
-          ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
-          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          // If it's time, update this pixel's transparency
+          if (timers[i] >= intervals[i]) {
+            timers[i] -= intervals[i];
+            const randMul = Math.random(); // 0..1
+            currentAlpha[i] = baseAlpha[i] * randMul;
+          }
+
+          i++;
         }
       }
     }
 
-    drawRadialGrid();
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Canvas centrato sul mouse
+      let i = 0;
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const a = currentAlpha[i]; // 0..1
+          if (a > 0) {
+            ctx.fillStyle = `rgba(0, 0, 0, ${a})`;
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          }
+          i++;
+        }
+      }
+    }
+
+    // Animation loop with per-pixel timers
+    let lastTime = null;
+    function loop(timestamp) {
+      if (lastTime === null) lastTime = timestamp;
+      const dt = (timestamp - lastTime) / 1000; // seconds
+      lastTime = timestamp;
+
+      update(dt);
+      render();
+
+      requestAnimationFrame(loop);
+    }
+
+    requestAnimationFrame(loop);
+
+    // Keep the canvas centered on the mouse
     window.addEventListener("mousemove", (e) => {
       canvas.style.left = e.clientX + "px";
       canvas.style.top = e.clientY + "px";
