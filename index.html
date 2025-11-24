@@ -220,6 +220,30 @@
       </div>
     </footer>
   </div>
+
+   <meta charset="UTF-8" />
+  <title>Radial mouse square</title>
+  <style>
+    body {
+      background: #ffffff;
+      margin: 0;
+      height: 100vh;
+      font-family: system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    /* 50x50 canvas following the mouse, centered on the pointer */
+    #grad-square {
+      position: fixed;
+      width: 50px;
+      height: 50px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%); /* center of canvas = (top,left) */
+      image-rendering: pixelated;
+      pointer-events: none; /* don't block clicks */
+    }
+  </style>
 <canvas id="grad-square" width="50" height="50"></canvas>
 
   <script>
