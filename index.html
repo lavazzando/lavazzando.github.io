@@ -220,23 +220,33 @@
       </div>
     </footer>
   </div>
-<script>
+<canvas id="grad-square" width="50" height="50"></canvas>
+
+  <script>
     const canvas = document.getElementById("grad-square");
     const ctx = canvas.getContext("2d");
 
-    const cols = 100;
-    const rows = 100;
+    const cols = 10;
+    const rows = 10;
     const cellSize = 5; // 10 * 5 = 50 px
 
-    // Draw the 10x10 grid once: from black (opaque) → fully transparent
-    function drawGrid() {
+    // Centro in coordinate "celle" (0..9)
+    const cx = (cols - 1) / 2; // 4.5
+    const cy = (rows - 1) / 2; // 4.5
+    // Distanza massima dal centro a un angolo
+    const maxDist = Math.sqrt(cx * cx + cy * cy);
+
+    function drawRadialGrid() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
-          const index = y * cols + x;   // 0 .. 99
-          const t = index / 99;         // 0 .. 1
-          const alpha = 1 - t;          // 1 (black) → 0 (transparent)
+          const dx = x - cx;
+          const dy = y - cy;
+          const dist = Math.sqrt(dx * dx + dy * dy); // 0..maxDist
+          let t = dist / maxDist;                    // 0 centro → 1 bordo
+          if (t > 1) t = 1;
+          const alpha = 1 - t;                       // centro opaco → bordo trasparente
 
           ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
           ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
@@ -244,9 +254,9 @@
       }
     }
 
-    drawGrid();
+    drawRadialGrid();
 
-    // Keep the canvas centered on the mouse
+    // Canvas centrato sul mouse
     window.addEventListener("mousemove", (e) => {
       canvas.style.left = e.clientX + "px";
       canvas.style.top = e.clientY + "px";
