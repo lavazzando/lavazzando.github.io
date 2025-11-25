@@ -266,8 +266,8 @@
     const intervals = new Float32Array(N); // seconds between updates
     const timers = new Float32Array(N);
 
-    const minFps = 1;
-    const maxFps = 25;
+    const minFps = 0.01;
+    const maxFps = 12.;
 
     // Center in grid coordinates
     const cx = (cols - 1) / 2;
