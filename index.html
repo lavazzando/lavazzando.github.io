@@ -223,6 +223,7 @@
 
    <meta charset="UTF-8" />
   <title>Radial mouse square</title>
+<title>Dynamic radial noise square</title>
   <style>
     body {
       background: #ffffff;
@@ -230,6 +231,9 @@
       height: 100vh;
       font-family: system-ui, sans-serif;
       overflow: hidden;
+      /* Uncomment if you want to hide the mouse:
+      cursor: none;
+      */
     }
 
     /* 50x50 canvas following the mouse, centered on the pointer */
@@ -239,10 +243,11 @@
       height: 50px;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%); /* center of canvas = (top,left) */
+      transform: translate(-50%, -50%);
       image-rendering: pixelated;
       pointer-events: none; /* don't block clicks */
     }
+  </style>
  <canvas id="grad-square" width="50" height="50"></canvas>
   <script>
     const canvas = document.getElementById("grad-square");
