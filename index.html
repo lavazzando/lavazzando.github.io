@@ -12,22 +12,28 @@
     }
     *{box-sizing:border-box;}
     body{
-      margin:0;min-height:100vh;background:#fff;color:var(--fg);
-      font-family:var(--font-sans);overflow-x:hidden;
+      margin:0;
+      min-height:100vh;
+      background:#fff;
+      color:var(--fg);
+      font-family:var(--font-sans);
+      overflow-x:hidden;
       cursor:none; /* hide mouse cursor */
     }
-    /* Animated noisy square centered on mouse (50x50 px → scaled to 150x150) */
-    #cursorCanvas{
+
+    /* Dynamic cursor square: 50x50 canvas, centered on pointer */
+    #grad-square{
       position:fixed;
-      width:150px;
-      height:150px;
+      width:50px;
+      height:50px;
       top:50%;
       left:50%;
       transform:translate(-50%,-50%);
-      pointer-events:none;
-      z-index:1000;
       image-rendering:pixelated;
+      pointer-events:none; /* do not block clicks */
+      z-index:9999;        /* always on top of everything */
     }
+
     .frame{
       max-width:1100px;margin:2.5rem auto 3rem;padding:0 1.5rem;
       border:1px solid var(--border);border-radius:18px;
@@ -61,14 +67,17 @@
     }
     nav a:hover{color:var(--fg);}
     nav a:hover::after{width:100%;}
+
     main{padding:1.5rem;}
     .layout{
       display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr);
       gap:2rem;
     }
     @media(max-width:800px){.layout{grid-template-columns:1fr;}}
+
     .intro h1{font-size:clamp(2.2rem,4vw,2.8rem);margin:0 0 .75rem;}
     .intro p{margin:0 0 .75rem;color:var(--muted);font-size:.98rem;}
+
     .meta-list{
       list-style:none;padding:0;margin:1.2rem 0 0;font-size:.85rem;
       color:var(--muted);
@@ -78,6 +87,7 @@
       text-transform:uppercase;letter-spacing:.16em;font-size:.72rem;
       color:#888;display:inline-block;margin-right:.5rem;
     }
+
     .project-grid{
       display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
       gap:1rem;
@@ -96,17 +106,20 @@
     }
     .project-title{font-size:.95rem;font-weight:600;}
     .project-meta{font-size:.78rem;color:var(--muted);margin-top:.2rem;}
+
     .listen-block{
       margin-top:2.5rem;border-top:1px solid var(--border);padding-top:1.25rem;
       display:grid;gap:1rem;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);
       align-items:flex-start;
     }
     @media(max-width:800px){.listen-block{grid-template-columns:1fr;}}
+
     .listen-block h2{
       font-size:1rem;text-transform:uppercase;letter-spacing:.16em;
       margin:0 0 .5rem;
     }
     .listen-block p{margin:0 0 .5rem;font-size:.9rem;color:var(--muted);}
+
     .player-shell{
       border-radius:14px;border:1px solid var(--border);padding:.8rem .9rem;
       background:#f8f8f8;font-size:.85rem;
@@ -116,6 +129,7 @@
       font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;
       color:#808080;display:block;margin-bottom:.3rem;
     }
+
     footer{
       padding:0 1.5rem 1.5rem;border-top:1px solid var(--border);
       font-size:.78rem;color:var(--muted);display:flex;flex-wrap:wrap;
@@ -126,15 +140,16 @@
   </style>
 </head>
 <body>
-  <!-- 150x150 visual square (50x50 internal pixels) following the mouse -->
-  <canvas id="cursorCanvas" width="50" height="50" aria-hidden="true"></canvas>
+  <!-- Dynamic cursor canvas -->
+  <canvas id="grad-square" width="50" height="50" aria-hidden="true"></canvas>
 
   <div class="frame">
     <header>
       <div>
         <div class="site-title"><span>Matteo Traverso</span></div>
         <div class="tagline">
-          Sound artist / digital synth developer / modular synth player, working with improvisation, sound installations and spatial audio.
+          Sound artist / digital synth developer / modular synth player,
+          working with improvisation, sound installations and spatial audio.
         </div>
       </div>
       <nav>
@@ -148,12 +163,12 @@
     <main>
       <div class="layout">
         <section class="intro" id="about">
-          <h1>Intersectional exploration different scale of relations and interactions.</h1>
+          <h1>Intersectional exploration of different scales of relations and interactions.</h1>
           <p>
-            I work with acoustic and electronic instruments, dancer and visual artists. 
+            I work with acoustic and electronic instruments, dancers and visual artists.
           </p>
           <p>
-            I am currently based in Köln, working on impro-stets, performances and sound installations.
+            I am currently based in Köln, working on impro-sets, performances and sound installations.
           </p>
           <ul class="meta-list">
             <li><span class="meta-label">Based in</span>Köln / NRW / Europe</li>
@@ -195,7 +210,7 @@
           <h2>Listen</h2>
           <p>
             A small selection of recordings. For more, visit my
-            <a href="https://matteotraverso.bandcamp.com/dashboard" target="_blank" rel="noopener">
+            <a href="https://matteotraverso.bandcamp.com" target="_blank" rel="noopener">
               Bandcamp / SoundCloud
             </a>.
           </p>
@@ -221,35 +236,8 @@
     </footer>
   </div>
 
-   <meta charset="UTF-8" />
-  <title>Radial mouse square</title>
-<title>Dynamic radial noise square</title>
-  <style>
-    body {
-      background: #ffffff;
-      margin: 0;
-      height: 100vh;
-      font-family: system-ui, sans-serif;
-      overflow: hidden;
-      /* Uncomment if you want to hide the mouse:
-      cursor: none;
-      */
-    }
-
-    /* 50x50 canvas following the mouse, centered on the pointer */
-    #grad-square {
-      position: fixed;
-      width: 50px;
-      height: 50px;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      image-rendering: pixelated;
-      pointer-events: none; /* don't block clicks */
-    }
-  </style>
- <canvas id="grad-square" width="50" height="50"></canvas>
   <script>
+    // ===== Dynamic radial cursor square with random alpha + per-pixel FPS =====
     const canvas = document.getElementById("grad-square");
     const ctx = canvas.getContext("2d");
 
@@ -266,13 +254,17 @@
     const intervals = new Float32Array(N); // seconds between updates
     const timers = new Float32Array(N);
 
-    const minFps = 0.01;
-    const maxFps = 6.;
+    // Random refresh rate 10–40 fps
+    const minFps = 10;
+    const maxFps = 40;
 
     // Center in grid coordinates
     const cx = (cols - 1) / 2;
     const cy = (rows - 1) / 2;
     const maxDist = Math.sqrt(cx * cx + cy * cy);
+
+    // Freeze flag (when over a link)
+    let frozen = false;
 
     // Initialize base radial alpha and timing
     let idx = 0;
@@ -298,6 +290,8 @@
     }
 
     function update(dt) {
+      if (frozen) return; // do not change pattern while over a link
+
       let i = 0;
       for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
@@ -346,13 +340,30 @@
 
     requestAnimationFrame(loop);
 
-    // Keep the canvas centered on the mouse
+    // Keep the canvas centered on the mouse + detect links to freeze
     window.addEventListener("mousemove", (e) => {
       canvas.style.left = e.clientX + "px";
-      canvas.style.top = e.clientY + "px";
-    });
-  </script>
+      canvas.style.top  = e.clientY + "px";
 
- 
+      // Hit-test the element under the pointer (canvas has pointer-events:none)
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      let node = el;
+      let onLink = false;
+
+      while (node) {
+        if (node.tagName === "A") {
+          onLink = true;
+          break;
+        }
+        node = node.parentElement;
+      }
+
+      frozen = onLink;
+    });
+
+    // Footer year
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>
+
