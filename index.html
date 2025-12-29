@@ -158,43 +158,7 @@
 }
 
 
-  </style>
-</head>
-<script>
-const fonts = [
-  "Jazz LET, fantasy",
-  "Courier New, monospace",
-  "Chalkduster, fantasy",
-  "OCR A Std, monospace",
-  "Bookman, 'URW Bookman L', serif",
-  "Optima, sans-serif"
-];
 
-const weights = [80, 200, 500];
-
-// Elements you want affected
-const targets = document.querySelectorAll(
-  "h1, h2, h3, p, a, li, span"
-);
-
-function randomItem(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-targets.forEach(el => {
-  const text = el.textContent;
-  el.textContent = ""; // clear original
-
-  [...text].forEach(char => {
-    const span = document.createElement("span");
-    span.className = "random-letter";
-    span.textContent = char;
-    span.style.fontFamily = randomItem(fonts);
-    span.style.fontWeight = randomItem(weights);
-    el.appendChild(span);
-  });
-});
-</script>
 
 <body>
   <!-- Dynamic cursor canvas -->
@@ -421,6 +385,43 @@ targets.forEach(el => {
     // Footer year
     document.getElementById("year").textContent = new Date().getFullYear();
   </script>
+      </style>
+</head>
+<script>
+const fonts = [
+  "Jazz LET, fantasy",
+  "Courier New, monospace",
+  "Chalkduster, fantasy",
+  "OCR A Std, monospace",
+  "Bookman, 'URW Bookman L', serif",
+  "Optima, sans-serif"
+];
+
+const weights = [80, 200, 500];
+
+// Elements you want affected
+const targets = document.querySelectorAll(
+  "h1, h2, h3, p, a, li, span"
+);
+
+function randomItem(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+targets.forEach(el => {
+  const text = el.textContent;
+  el.textContent = ""; // clear original
+
+  [...text].forEach(char => {
+    const span = document.createElement("span");
+    span.className = "random-letter";
+    span.textContent = char;
+    span.style.fontFamily = randomItem(fonts);
+    span.style.fontWeight = randomItem(weights);
+    el.appendChild(span);
+  });
+});
+</script>
 </body>
 </html>
 
