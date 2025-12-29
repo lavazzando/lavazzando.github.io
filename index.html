@@ -12,7 +12,7 @@
       --font-mono:"SF Mono",ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
     }
 
-    *{box-sizing:border-box;}
+    *{ box-sizing:border-box; }
 
     body{
       margin:0;
@@ -27,7 +27,9 @@
     /* No native cursor anywhere */
     *, *::before, *::after{ cursor:none !important; }
 
-    /* Fullscreen dynamic background (squares) */
+    /* ===== Layers ===== */
+
+    /* Background canvas (stretched) */
     #bg-lines{
       position:fixed;
       inset:0;
@@ -37,25 +39,27 @@
       pointer-events:none;
     }
 
-    /* Creature layer: above bg, behind content */
+    /* Creatures above background, behind content */
     #creature-layer{
       position:fixed;
       inset:0;
-      z-index:0; /* same stack level as bg; DOM order places it above bg */
+      z-index:1;
       pointer-events:none;
     }
 
-    .creature{
-      position:absolute;
-      width:60px;
-      height:60px;
-      image-rendering:pixelated;
-      opacity:0;
-      transition:opacity 1200ms ease;
-      filter: blur(0.2px);
+    /* Content above everything (except pointer) */
+    .frame{
+      max-width:1100px;
+      margin:2.5rem auto 3rem;
+      padding:0 1.5rem;
+      border:1px dashed var(--border);
+      background:rgba(255,255,255,0.92);
+      backdrop-filter:blur(6px);
+      position:relative;
+      z-index:2;
     }
 
-    /* Dynamic cursor square canvas (topmost) */
+    /* Pointer on top */
     #grad-square{
       position:fixed;
       width:50px;height:50px;
@@ -66,15 +70,15 @@
       z-index:9999;
     }
 
-    .frame{
-      max-width:1100px;
-      margin:2.5rem auto 3rem;
-      padding:0 1.5rem;
-      border:1px dashed var(--border);
-      background:rgba(255,255,255,0.92);
-      backdrop-filter:blur(6px);
-      position:relative;
-      z-index:1;
+    /* Creature canvases */
+    .creature{
+      position:absolute;
+      width:60px;
+      height:60px;
+      image-rendering:pixelated;
+      opacity:0;
+      transition:opacity 1200ms ease;
+      filter: blur(0.2px);
     }
 
     header{
@@ -127,17 +131,17 @@
       transition:width 150ms ease;
     }
 
-    nav a:hover{color:var(--fg);}
-    nav a:hover::after{width:100%;}
+    nav a:hover{ color:var(--fg); }
+    nav a:hover::after{ width:100%; }
 
-    main{padding:1.5rem;}
+    main{ padding:1.5rem; }
 
     .layout{
       display:grid;
       grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr);
       gap:2rem;
     }
-    @media(max-width:800px){.layout{grid-template-columns:1fr;}}
+    @media(max-width:800px){ .layout{ grid-template-columns:1fr; } }
 
     .intro h1{
       font-size:clamp(1.2rem,2vw,1.8rem);
@@ -157,7 +161,7 @@
       font-size:.85rem;
       color:var(--muted);
     }
-    .meta-list li{margin-bottom:.2rem;}
+    .meta-list li{ margin-bottom:.2rem; }
 
     .meta-label{
       text-transform:uppercase;
@@ -200,8 +204,8 @@
       margin-bottom:.35rem;
     }
 
-    .project-title{font-size:.95rem;font-weight:600;}
-    .project-meta{font-size:.78rem;color:var(--muted);margin-top:.2rem;}
+    .project-title{ font-size:.95rem;font-weight:600; }
+    .project-meta{ font-size:.78rem;color:var(--muted);margin-top:.2rem; }
 
     .listen-block{
       margin-top:2.5rem;
@@ -212,7 +216,7 @@
       grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);
       align-items:flex-start;
     }
-    @media(max-width:800px){.listen-block{grid-template-columns:1fr;}}
+    @media(max-width:800px){ .listen-block{ grid-template-columns:1fr; } }
 
     .listen-block h2{
       font-size:1rem;
@@ -235,7 +239,7 @@
       font-size:.85rem;
     }
 
-    audio{width:100%;margin-top:.55rem;}
+    audio{ width:100%; margin-top:.55rem; }
 
     .small-label{
       font-size:.72rem;
@@ -257,15 +261,16 @@
       gap:.75rem;
     }
 
-    footer a{color:var(--muted);text-decoration:none;}
-    footer a:hover{color:var(--fg);text-decoration:underline;}
+    footer a{ color:var(--muted); text-decoration:none; }
+    footer a:hover{ color:var(--fg); text-decoration:underline; }
 
+    /* per-letter spans */
     .random-letter{
       display:inline-block;
       white-space:pre;
     }
 
-    /* Keep title readable even when scrambled */
+    /* keep title readable even when scrambled */
     .site-title .random-letter{
       font-family: Cambria, serif !important;
       font-weight: 700 !important;
@@ -277,13 +282,13 @@
 </head>
 
 <body>
-  <!-- Background -->
+  <!-- Stretched background -->
   <canvas id="bg-lines" aria-hidden="true"></canvas>
 
-  <!-- Creature layer (must be in BODY, not in CSS) -->
+  <!-- Creatures layer -->
   <div id="creature-layer" aria-hidden="true"></div>
 
-  <!-- Pointer creature -->
+  <!-- Pointer -->
   <canvas id="grad-square" width="50" height="50" aria-hidden="true"></canvas>
 
   <div class="frame">
@@ -384,80 +389,71 @@
   </div>
 
   <script>
-    // Footer year
     document.getElementById("year").textContent = new Date().getFullYear();
   </script>
 
   <script>
-    // ===== Pointer creature (your cursor) =====
+    // ===== Pointer creature (cursor) =====
     const canvas = document.getElementById("grad-square");
     const ctx = canvas.getContext("2d");
 
     const pCols = 10;
     const pRows = 10;
-    const cellSize = 5;
-    const N = pCols * pRows;
+    const pCell = 5;
+    const pN = pCols * pRows;
 
-    const baseAlpha = new Float32Array(N);
-    const currentAlpha = new Float32Array(N);
-
-    const intervals = new Float32Array(N);
-    const timers = new Float32Array(N);
+    const baseAlpha = new Float32Array(pN);
+    const currentAlpha = new Float32Array(pN);
+    const intervals = new Float32Array(pN);
+    const timers = new Float32Array(pN);
 
     const minFps = 0.01;
     const maxFps = 8;
 
-    const cx = (pCols - 1) / 2;
-    const cy = (pRows - 1) / 2;
-    const maxDist = Math.sqrt(cx * cx + cy * cy);
+    const pcx = (pCols - 1) / 2;
+    const pcy = (pRows - 1) / 2;
+    const pMaxDist = Math.sqrt(pcx*pcx + pcy*pcy);
 
     let frozen = false;
 
-    let idx = 0;
-    for (let y = 0; y < pRows; y++) {
-      for (let x = 0; x < pCols; x++) {
-        const dx = x - cx;
-        const dy = y - cy;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        let t = dist / maxDist;
-        if (t > 1) t = 1;
-        baseAlpha[idx] = 1 - t;
+    let idp = 0;
+    for (let y=0; y<pRows; y++){
+      for (let x=0; x<pCols; x++){
+        const dx = x - pcx;
+        const dy = y - pcy;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        let t = dist / pMaxDist; if (t>1) t=1;
+        baseAlpha[idp] = 1 - t;
 
         const fps = minFps + Math.random() * (maxFps - minFps);
-        intervals[idx] = 1 / fps;
-        timers[idx] = Math.random() * intervals[idx];
+        intervals[idp] = 1 / fps;
+        timers[idp] = Math.random() * intervals[idp];
 
-        currentAlpha[idx] = baseAlpha[idx] * Math.random();
-        idx++;
+        currentAlpha[idp] = baseAlpha[idp] * Math.random();
+        idp++;
       }
     }
 
-    function update(dt) {
+    function updatePointer(dt){
       if (frozen) return;
-
-      let i = 0;
-      for (let y = 0; y < pRows; y++) {
-        for (let x = 0; x < pCols; x++) {
-          timers[i] += dt;
-          if (timers[i] >= intervals[i]) {
-            timers[i] -= intervals[i];
-            currentAlpha[i] = baseAlpha[i] * Math.random();
-          }
-          i++;
+      for (let i=0; i<pN; i++){
+        timers[i] += dt;
+        if (timers[i] >= intervals[i]){
+          timers[i] -= intervals[i];
+          currentAlpha[i] = baseAlpha[i] * Math.random();
         }
       }
     }
 
-    function render() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      let i = 0;
-      for (let y = 0; y < pRows; y++) {
-        for (let x = 0; x < pCols; x++) {
+    function renderPointer(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      let i=0;
+      for (let y=0; y<pRows; y++){
+        for (let x=0; x<pCols; x++){
           const a = currentAlpha[i];
-          if (a > 0) {
-            ctx.fillStyle = `rgba(0, 0, 0, ${a})`;
-            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          if (a > 0){
+            ctx.fillStyle = `rgba(0,0,0,${a})`;
+            ctx.fillRect(x*pCell, y*pCell, pCell, pCell);
           }
           i++;
         }
@@ -465,15 +461,16 @@
     }
 
     let lastTime = null;
-    function loop(ts) {
+    function pointerLoop(ts){
       if (lastTime === null) lastTime = ts;
       const dt = (ts - lastTime) / 1000;
       lastTime = ts;
-      update(dt);
-      render();
-      requestAnimationFrame(loop);
+
+      updatePointer(dt);
+      renderPointer();
+      requestAnimationFrame(pointerLoop);
     }
-    requestAnimationFrame(loop);
+    requestAnimationFrame(pointerLoop);
 
     window.addEventListener("mousemove", (e) => {
       canvas.style.left = e.clientX + "px";
@@ -482,18 +479,16 @@
       const el = document.elementFromPoint(e.clientX, e.clientY);
       let node = el;
       let onLink = false;
-
-      while (node) {
-        if (node.tagName === "A") { onLink = true; break; }
+      while (node){
+        if (node.tagName === "A"){ onLink = true; break; }
         node = node.parentElement;
       }
-
       frozen = onLink;
     });
   </script>
 
   <script>
-    // ===== Random-font per-letter across the whole site (preserving structure) =====
+    // ===== Random font per-letter across the whole site =====
     window.addEventListener("DOMContentLoaded", () => {
       const fonts = [
         "Courier New, monospace",
@@ -503,7 +498,6 @@
         "Optima, sans-serif",
         "Cambria, serif"
       ];
-
       const weights = [80, 200, 500];
       const randomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
@@ -511,32 +505,28 @@
         document.body,
         NodeFilter.SHOW_TEXT,
         {
-          acceptNode(node) {
+          acceptNode(node){
             if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
-
             const p = node.parentElement;
             if (!p) return NodeFilter.FILTER_REJECT;
-
             const tag = p.tagName;
             if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT") return NodeFilter.FILTER_REJECT;
-
-            // skip canvases / creature layer text (there shouldn't be)
-            if (p.closest && (p.closest("#grad-square") || p.closest("#bg-lines"))) return NodeFilter.FILTER_REJECT;
-
+            if (p.closest && (p.closest("#grad-square") || p.closest("#bg-lines") || p.closest("#creature-layer"))) {
+              return NodeFilter.FILTER_REJECT;
+            }
             return NodeFilter.FILTER_ACCEPT;
           }
         }
       );
 
-      const textNodes = [];
+      const nodes = [];
       let n;
-      while ((n = walker.nextNode())) textNodes.push(n);
+      while ((n = walker.nextNode())) nodes.push(n);
 
-      for (const textNode of textNodes) {
+      for (const textNode of nodes){
         const text = textNode.nodeValue;
         const frag = document.createDocumentFragment();
-
-        for (const ch of text) {
+        for (const ch of text){
           const s = document.createElement("span");
           s.className = "random-letter";
           s.textContent = ch;
@@ -544,573 +534,21 @@
           s.style.fontWeight = String(randomItem(weights));
           frag.appendChild(s);
         }
-
-        textNode.parentNode.replaceChild(frag, textNode);
-      }
-    });
-  </script>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Matteo Traverso – Sound Artist</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <style>
-    :root{
-      --bg:#fff;--fg:#111;--muted:#555;--accent:#ff4f9a;--border:#ccc;
-      --font-sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      --font-mono:"SF Mono",ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
-    }
-
-    *{box-sizing:border-box;}
-
-    body{
-      margin:0;
-      min-height:100vh;
-      background:var(--bg);
-      color:var(--fg);
-      font-family:var(--font-sans);
-      overflow-x:hidden;
-      cursor:none; /* hide OS cursor */
-    }
-
-    /* No native cursor anywhere */
-    *, *::before, *::after{ cursor:none !important; }
-
-    /* Fullscreen dynamic background (squares) */
-    #bg-lines{
-      position:fixed;
-      inset:0;
-      width:100vw;
-      height:100vh;
-      z-index:0;
-      pointer-events:none;
-    }
-
-    /* Creature layer: above bg, behind content */
-    #creature-layer{
-      position:fixed;
-      inset:0;
-      z-index:0; /* same stack level as bg; DOM order places it above bg */
-      pointer-events:none;
-    }
-
-    .creature{
-      position:absolute;
-      width:60px;
-      height:60px;
-      image-rendering:pixelated;
-      opacity:0;
-      transition:opacity 1200ms ease;
-      filter: blur(0.2px);
-    }
-
-    /* Dynamic cursor square canvas (topmost) */
-    #grad-square{
-      position:fixed;
-      width:50px;height:50px;
-      top:50%;left:50%;
-      transform:translate(-50%,-50%);
-      image-rendering:pixelated;
-      pointer-events:none;
-      z-index:9999;
-    }
-
-    .frame{
-      max-width:1100px;
-      margin:2.5rem auto 3rem;
-      padding:0 1.5rem;
-      border:1px dashed var(--border);
-      background:rgba(255,255,255,0.92);
-      backdrop-filter:blur(6px);
-      position:relative;
-      z-index:1;
-    }
-
-    header{
-      padding:1.5rem 1.5rem 1rem;
-      border-bottom:1px solid var(--border);
-      display:flex;
-      flex-wrap:wrap;
-      gap:1rem 2rem;
-      align-items:baseline;
-      justify-content:space-between;
-    }
-
-    .site-title{
-      font-family: Cambria, serif;
-      font-size:20px;
-      font-weight:700;
-      letter-spacing:.06em;
-      text-transform:uppercase;
-    }
-    .site-title span{ color:var(--fg); }
-
-    .tagline{
-      font-size:.9rem;
-      color:var(--muted);
-      max-width:25rem;
-    }
-
-    nav{
-      display:flex;
-      gap:1.2rem;
-      font-size:.85rem;
-      text-transform:uppercase;
-      letter-spacing:.12em;
-    }
-
-    nav a{
-      color:var(--muted);
-      text-decoration:none;
-      position:relative;
-    }
-
-    nav a::after{
-      content:"";
-      position:absolute;
-      left:0;
-      bottom:-.12rem;
-      width:0;
-      height:2px;
-      background:var(--accent);
-      transition:width 150ms ease;
-    }
-
-    nav a:hover{color:var(--fg);}
-    nav a:hover::after{width:100%;}
-
-    main{padding:1.5rem;}
-
-    .layout{
-      display:grid;
-      grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr);
-      gap:2rem;
-    }
-    @media(max-width:800px){.layout{grid-template-columns:1fr;}}
-
-    .intro h1{
-      font-size:clamp(1.2rem,2vw,1.8rem);
-      margin:0 0 .75rem;
-    }
-
-    .intro p{
-      margin:0 0 .75rem;
-      color:var(--muted);
-      font-size:.98rem;
-    }
-
-    .meta-list{
-      list-style:none;
-      padding:0;
-      margin:1.2rem 0 0;
-      font-size:.85rem;
-      color:var(--muted);
-    }
-    .meta-list li{margin-bottom:.2rem;}
-
-    .meta-label{
-      text-transform:uppercase;
-      letter-spacing:.16em;
-      font-size:.72rem;
-      color:#888;
-      display:inline-block;
-      margin-right:.5rem;
-    }
-
-    .project-grid{
-      display:grid;
-      grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
-      gap:1rem;
-    }
-
-    .project-card{
-      border-radius:14px;
-      border:1px solid var(--border);
-      background:#f5f5f5;
-      padding:.9rem;
-      min-height:140px;
-      display:flex;
-      flex-direction:column;
-      justify-content:flex-end;
-      text-decoration:none;
-      color:inherit;
-    }
-
-    .project-card:hover{
-      border-color:var(--accent);
-      box-shadow:0 0 0 1px rgba(255,79,154,.4);
-    }
-
-    .project-tag{
-      font-size:.7rem;
-      letter-spacing:.16em;
-      text-transform:uppercase;
-      color:var(--muted);
-      margin-bottom:.35rem;
-    }
-
-    .project-title{font-size:.95rem;font-weight:600;}
-    .project-meta{font-size:.78rem;color:var(--muted);margin-top:.2rem;}
-
-    .listen-block{
-      margin-top:2.5rem;
-      border-top:1px solid var(--border);
-      padding-top:1.25rem;
-      display:grid;
-      gap:1rem;
-      grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);
-      align-items:flex-start;
-    }
-    @media(max-width:800px){.listen-block{grid-template-columns:1fr;}}
-
-    .listen-block h2{
-      font-size:1rem;
-      text-transform:uppercase;
-      letter-spacing:.16em;
-      margin:0 0 .5rem;
-    }
-
-    .listen-block p{
-      margin:0 0 .5rem;
-      font-size:.9rem;
-      color:var(--muted);
-    }
-
-    .player-shell{
-      border-radius:14px;
-      border:1px solid var(--border);
-      padding:.8rem .9rem;
-      background:#f8f8f8;
-      font-size:.85rem;
-    }
-
-    audio{width:100%;margin-top:.55rem;}
-
-    .small-label{
-      font-size:.72rem;
-      letter-spacing:.16em;
-      text-transform:uppercase;
-      color:#808080;
-      display:block;
-      margin-bottom:.3rem;
-    }
-
-    footer{
-      padding:0 1.5rem 1.5rem;
-      border-top:1px solid var(--border);
-      font-size:.78rem;
-      color:var(--muted);
-      display:flex;
-      flex-wrap:wrap;
-      justify-content:space-between;
-      gap:.75rem;
-    }
-
-    footer a{color:var(--muted);text-decoration:none;}
-    footer a:hover{color:var(--fg);text-decoration:underline;}
-
-    .random-letter{
-      display:inline-block;
-      white-space:pre;
-    }
-
-    /* Keep title readable even when scrambled */
-    .site-title .random-letter{
-      font-family: Cambria, serif !important;
-      font-weight: 700 !important;
-      font-size: 20px !important;
-      letter-spacing: .06em;
-      color: var(--fg);
-    }
-  </style>
-</head>
-
-<body>
-  <!-- Background -->
-  <canvas id="bg-lines" aria-hidden="true"></canvas>
-
-  <!-- Creature layer (must be in BODY, not in CSS) -->
-  <div id="creature-layer" aria-hidden="true"></div>
-
-  <!-- Pointer creature -->
-  <canvas id="grad-square" width="50" height="50" aria-hidden="true"></canvas>
-
-  <div class="frame">
-    <header>
-      <div>
-        <div class="site-title"><span>Matteo Traverso</span></div>
-        <div class="tagline">
-          Sound artist / digital synth developer / modular synth player,
-          working with improvisation, sound installations and spatial audio.
-        </div>
-      </div>
-
-      <nav>
-        <a href="#works">Works</a>
-        <a href="#listen">Listen</a>
-        <a href="#about">About</a>
-        <a href="#contact">Contact</a>
-      </nav>
-    </header>
-
-    <main>
-      <div class="layout">
-        <section class="intro" id="about">
-          <h1>exploring boundaries of numb senses</h1>
-
-          <p>I work with acoustic and electronic instruments, dancers and visual artists.</p>
-          <p>I am currently based in Köln, working on impro-sets, performances and sound installations.</p>
-
-          <ul class="meta-list">
-            <li><span class="meta-label">Based in</span>Köln / NRW / Europe</li>
-            <li><span class="meta-label">Practices</span>sound art, improvisation, AV performance, installation</li>
-            <li>
-              <span class="meta-label">Contact</span>
-              <a href="mailto:matteo.traverso0@2gmail.com">matteo.traverso0@2gmail.com</a>
-            </li>
-          </ul>
-        </section>
-
-        <section id="works" aria-label="Selected works">
-          <div class="project-grid">
-            <a class="project-card" href="projects/exoplanet.html">
-              <div class="project-tag">AV performance</div>
-              <div class="project-title">EXOPLANET</div>
-              <div class="project-meta">improvised quintet · planetarium setting</div>
-            </a>
-
-            <a class="project-card" href="projects/probe-the-oracle.html">
-              <div class="project-tag">Violin & algorithm duet</div>
-              <div class="project-title">PROBE THE ORACLE</div>
-              <div class="project-meta">machine listening · concatenative synthesis</div>
-            </a>
-
-            <a class="project-card" href="projects/harsh-coziness.html">
-              <div class="project-tag">Performance</div>
-              <div class="project-title">HARSH COZINESS</div>
-              <div class="project-meta">DIY feedback objects · small speakers</div>
-            </a>
-
-            <a class="project-card" href="projects/installations.html">
-              <div class="project-tag">Installation</div>
-              <div class="project-title">INSTALLATIONS</div>
-              <div class="project-meta">ongoing research in spatial sound</div>
-            </a>
-          </div>
-        </section>
-      </div>
-
-      <section class="listen-block" id="listen">
-        <div>
-          <h2>Listen</h2>
-          <p>
-            A small selection of recordings. For more, visit my
-            <a href="https://matteotraverso.bandcamp.com" target="_blank" rel="noopener">
-              Bandcamp / SoundCloud
-            </a>.
-          </p>
-        </div>
-
-        <div class="player-shell">
-          <span class="small-label">Featured track</span>
-          <div><strong>Track title – from “Exoplanet”</strong></div>
-          <audio controls>
-            <source src="Lame_serenade_organ_model44.1" type="audio/mpeg" />
-            Your browser does not support the audio element.
-          </audio>
-        </div>
-      </section>
-    </main>
-
-    <footer id="contact">
-      <div>© <span id="year"></span> Matteo Traverso</div>
-      <div>
-        <a href="mailto:matteo.traverso02@gmail.com">matteo.traverso02@gmail.com</a> ·
-        <a href="https://instagram.com/yourprofile" target="_blank" rel="noopener">Instagram</a> ·
-        <a href="https://github.com/yourusername" target="_blank" rel="noopener">GitHub</a>
-      </div>
-    </footer>
-  </div>
-
-  <script>
-    // Footer year
-    document.getElementById("year").textContent = new Date().getFullYear();
-  </script>
-
-  <script>
-    // ===== Pointer creature (your cursor) =====
-    const canvas = document.getElementById("grad-square");
-    const ctx = canvas.getContext("2d");
-
-    const pCols = 10;
-    const pRows = 10;
-    const cellSize = 5;
-    const N = pCols * pRows;
-
-    const baseAlpha = new Float32Array(N);
-    const currentAlpha = new Float32Array(N);
-
-    const intervals = new Float32Array(N);
-    const timers = new Float32Array(N);
-
-    const minFps = 0.01;
-    const maxFps = 8;
-
-    const cx = (pCols - 1) / 2;
-    const cy = (pRows - 1) / 2;
-    const maxDist = Math.sqrt(cx * cx + cy * cy);
-
-    let frozen = false;
-
-    let idx = 0;
-    for (let y = 0; y < pRows; y++) {
-      for (let x = 0; x < pCols; x++) {
-        const dx = x - cx;
-        const dy = y - cy;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        let t = dist / maxDist;
-        if (t > 1) t = 1;
-        baseAlpha[idx] = 1 - t;
-
-        const fps = minFps + Math.random() * (maxFps - minFps);
-        intervals[idx] = 1 / fps;
-        timers[idx] = Math.random() * intervals[idx];
-
-        currentAlpha[idx] = baseAlpha[idx] * Math.random();
-        idx++;
-      }
-    }
-
-    function update(dt) {
-      if (frozen) return;
-
-      let i = 0;
-      for (let y = 0; y < pRows; y++) {
-        for (let x = 0; x < pCols; x++) {
-          timers[i] += dt;
-          if (timers[i] >= intervals[i]) {
-            timers[i] -= intervals[i];
-            currentAlpha[i] = baseAlpha[i] * Math.random();
-          }
-          i++;
-        }
-      }
-    }
-
-    function render() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      let i = 0;
-      for (let y = 0; y < pRows; y++) {
-        for (let x = 0; x < pCols; x++) {
-          const a = currentAlpha[i];
-          if (a > 0) {
-            ctx.fillStyle = `rgba(0, 0, 0, ${a})`;
-            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
-          }
-          i++;
-        }
-      }
-    }
-
-    let lastTime = null;
-    function loop(ts) {
-      if (lastTime === null) lastTime = ts;
-      const dt = (ts - lastTime) / 1000;
-      lastTime = ts;
-      update(dt);
-      render();
-      requestAnimationFrame(loop);
-    }
-    requestAnimationFrame(loop);
-
-    window.addEventListener("mousemove", (e) => {
-      canvas.style.left = e.clientX + "px";
-      canvas.style.top  = e.clientY + "px";
-
-      const el = document.elementFromPoint(e.clientX, e.clientY);
-      let node = el;
-      let onLink = false;
-
-      while (node) {
-        if (node.tagName === "A") { onLink = true; break; }
-        node = node.parentElement;
-      }
-
-      frozen = onLink;
-    });
-  </script>
-
-  <script>
-    // ===== Random-font per-letter across the whole site (preserving structure) =====
-    window.addEventListener("DOMContentLoaded", () => {
-      const fonts = [
-        "Courier New, monospace",
-        "OCR A Std, monospace",
-        "Andale Mono, monospace",
-        "Bookman, 'URW Bookman L', serif",
-        "Optima, sans-serif",
-        "Cambria, serif"
-      ];
-
-      const weights = [80, 200, 500];
-      const randomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-      const walker = document.createTreeWalker(
-        document.body,
-        NodeFilter.SHOW_TEXT,
-        {
-          acceptNode(node) {
-            if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
-
-            const p = node.parentElement;
-            if (!p) return NodeFilter.FILTER_REJECT;
-
-            const tag = p.tagName;
-            if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT") return NodeFilter.FILTER_REJECT;
-
-            // skip canvases / creature layer text (there shouldn't be)
-            if (p.closest && (p.closest("#grad-square") || p.closest("#bg-lines"))) return NodeFilter.FILTER_REJECT;
-
-            return NodeFilter.FILTER_ACCEPT;
-          }
-        }
-      );
-
-      const textNodes = [];
-      let n;
-      while ((n = walker.nextNode())) textNodes.push(n);
-
-      for (const textNode of textNodes) {
-        const text = textNode.nodeValue;
-        const frag = document.createDocumentFragment();
-
-        for (const ch of text) {
-          const s = document.createElement("span");
-          s.className = "random-letter";
-          s.textContent = ch;
-          s.style.fontFamily = randomItem(fonts);
-          s.style.fontWeight = String(randomItem(weights));
-          frag.appendChild(s);
-        }
-
         textNode.parentNode.replaceChild(frag, textNode);
       }
     });
   </script>
 
   <script>
-    // ===== Dynamic background (non-stretched squares, darker + smooth) =====
+    // ===== STRETCHED background (your last version) =====
     const bg = document.getElementById("bg-lines");
     const bctx = bg.getContext("2d", { alpha: true });
 
-    const bgCols = 10;
-    const bgRows = 10;
+    const cellW = 2;    // thin columns
+    const cellH = 46;   // stretched "pixels" -> lines
     const blurPx = 10;
-    const baseOpacity = 0.077; // +40% vs 0.055
-    const slowFactorFrames = 12;
+    const baseOpacity = 0.055;
+    const slowFactorFrames = 10;
 
     let mx = window.innerWidth * 0.5, my = window.innerHeight * 0.5;
     let tx = mx, ty = my;
@@ -1128,49 +566,45 @@
 
     window.addEventListener("mousemove", (e) => { tx = e.clientX; ty = e.clientY; });
 
-    function lerp(a,b,t){ return a + (b-a)*t; }
-    function rand01(){ return Math.random(); }
-
-    const Nbg = bgCols * bgRows;
-    let A = new Float32Array(Nbg);
-    let B = new Float32Array(Nbg);
-    let tPattern = 0;
+    let noiseA = new Float32Array(0);
+    let noiseB = new Float32Array(0);
+    let tNoise = 0;
     let frameCount = 0;
 
-    // radial base like pointer
-    const base = new Float32Array(Nbg);
-    const ccx = (bgCols - 1) / 2;
-    const ccy = (bgRows - 1) / 2;
-    const maxDist2 = Math.sqrt(ccx*ccx + ccy*ccy);
-    let i0 = 0;
-    for (let y=0; y<bgRows; y++){
-      for (let x=0; x<bgCols; x++){
-        const dx = x - ccx, dy = y - ccy;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        let t = dist / maxDist2; if (t>1) t=1;
-        base[i0++] = 1 - t;
-      }
+    function rand01(){ return Math.random(); }
+    function lerp(a,b,t){ return a + (b-a)*t; }
+
+    function buildNoise(cols, rows){
+      const arr = new Float32Array(cols * rows);
+      for (let i=0;i<arr.length;i++) arr[i] = rand01();
+      return arr;
     }
 
-    function reseed(arr){
-      for (let i=0; i<Nbg; i++){
-        arr[i] = base[i] * rand01();
+    function ensureNoiseSize(){
+      const cols = Math.ceil(window.innerWidth / cellW);
+      const rows = Math.ceil(window.innerHeight / cellH);
+      const needed = cols * rows;
+      if (noiseA.length !== needed){
+        noiseA = buildNoise(cols, rows);
+        noiseB = buildNoise(cols, rows);
+        tNoise = 0;
       }
+      return { cols, rows };
     }
-    reseed(A); reseed(B);
 
     function renderBG(){
-      mx = lerp(mx, tx, 0.06);
-      my = lerp(my, ty, 0.06);
+      const { cols, rows } = ensureNoiseSize();
+
+      mx = lerp(mx, tx, 0.12);
+      my = lerp(my, ty, 0.08);
 
       frameCount++;
       if (frameCount % slowFactorFrames === 0){
-        A = B;
-        B = new Float32Array(Nbg);
-        reseed(B);
-        tPattern = 0;
+        noiseA = noiseB;
+        noiseB = buildNoise(cols, rows);
+        tNoise = 0;
       }
-      tPattern = Math.min(1, tPattern + 0.02);
+      tNoise = Math.min(1, tNoise + 0.015);
 
       bctx.clearRect(0,0,window.innerWidth, window.innerHeight);
       bctx.save();
@@ -1178,28 +612,28 @@
 
       const g = bctx.createRadialGradient(
         mx, my, 0,
-        mx, my, Math.max(window.innerWidth, window.innerHeight) * 0.6
+        mx, my, Math.max(window.innerWidth, window.innerHeight) * 0.55
       );
       g.addColorStop(0, `rgba(0,0,0,${baseOpacity})`);
       g.addColorStop(1, `rgba(0,0,0,0)`);
       bctx.fillStyle = g;
       bctx.fillRect(0,0,window.innerWidth, window.innerHeight);
 
-      const cellW = window.innerWidth / bgCols;
-      const cellH = window.innerHeight / bgRows;
-
       bctx.globalCompositeOperation = "multiply";
 
-      let k = 0;
-      for (let y=0; y<bgRows; y++){
-        for (let x=0; x<bgCols; x++){
-          const n = lerp(A[k], B[k], tPattern);
-          const a = Math.pow(n, 1.7) * 0.22; // darker squares
-          if (a > 0.001){
-            bctx.fillStyle = `rgba(0,0,0,${a})`;
-            bctx.fillRect(x*cellW, y*cellH, cellW, cellH);
-          }
-          k++;
+      let i = 0;
+      for (let y=0; y<rows; y++){
+        const py = y * cellH;
+        for (let x=0; x<cols; x++){
+          const px = x * cellW;
+          const n = lerp(noiseA[i], noiseB[i], tNoise);
+
+          // your last code had higher intensity; keep it:
+          const a = (n * n) * 0.4;
+
+          bctx.fillStyle = `rgba(0,0,0,${a})`;
+          bctx.fillRect(px, py, cellW, cellH);
+          i++;
         }
       }
 
@@ -1210,7 +644,7 @@
   </script>
 
   <script>
-    // ===== Edge creatures (7–13), black-or-transparent pixels, appear/disappear =====
+    // ===== Edge creatures (7–13), black OR transparent per square =====
     window.addEventListener("DOMContentLoaded", () => {
       const layer = document.getElementById("creature-layer");
       if (!layer) return;
@@ -1221,11 +655,11 @@
       const creatureCount = randInt(7, 13);
 
       const cols = 10, rows = 10, cellSize = 5;
-      const baseW = cols * cellSize;
-      const baseH = rows * cellSize;
+      const baseW = cols * cellSize; // 50
+      const baseH = rows * cellSize; // 50
       const N = cols * rows;
 
-      // radial base probability
+      // radial base probability (center higher)
       const base = new Float32Array(N);
       const cx = (cols - 1) / 2;
       const cy = (rows - 1) / 2;
@@ -1244,24 +678,23 @@
       function edgePosition(margin=18){
         const w = window.innerWidth;
         const h = window.innerHeight;
-
         const edge = randInt(0,3);
         let x, y;
 
-        if (edge === 0) { // top
+        if (edge === 0){ // top
           x = rand(margin, w - margin);
-          y = rand(margin, margin + 80);
-        } else if (edge === 1) { // bottom
+          y = rand(margin, margin + 90);
+        } else if (edge === 1){ // bottom
           x = rand(margin, w - margin);
-          y = rand(h - margin - 80, h - margin);
-        } else if (edge === 2) { // left
-          x = rand(margin, margin + 80);
+          y = rand(h - margin - 90, h - margin);
+        } else if (edge === 2){ // left
+          x = rand(margin, margin + 90);
           y = rand(margin, h - margin);
         } else { // right
-          x = rand(w - margin - 80, w - margin);
+          x = rand(w - margin - 90, w - margin);
           y = rand(margin, h - margin);
         }
-        return { x, y };
+        return {x,y};
       }
 
       function makeCreature(){
@@ -1270,7 +703,7 @@
         c.width = baseW;
         c.height = baseH;
 
-        // random size: pointer 50px -> creatures around 35..65px
+        // size ~ pointer +-30%
         const size = rand(35, 65);
         c.style.width = `${size}px`;
         c.style.height = `${size}px`;
@@ -1284,19 +717,17 @@
         const ctx = c.getContext("2d");
         ctx.imageSmoothingEnabled = false;
 
-        // black-or-transparent grid
         const on = new Uint8Array(N);
         const timers = new Float32Array(N);
         const intervals = new Float32Array(N);
 
-        // slower changes than cursor
-        const minInterval = 0.8;
+        const minInterval = 0.8; // slower flicker
         const maxInterval = 3.2;
 
         for (let i=0; i<N; i++){
           intervals[i] = rand(minInterval, maxInterval);
           timers[i] = rand(0, intervals[i]);
-          on[i] = (Math.random() < (base[i] * 0.65)) ? 1 : 0;
+          on[i] = (Math.random() < (base[i] * 0.7)) ? 1 : 0;
         }
 
         function draw(){
@@ -1317,29 +748,26 @@
 
         async function lifecycle(){
           while (true){
-            // reposition each cycle
+            // new position + size each cycle
             const p = edgePosition();
             c.style.left = `${p.x}px`;
             c.style.top  = `${p.y}px`;
 
-            // size each cycle
             const size = rand(35, 65);
             c.style.width = `${size}px`;
             c.style.height = `${size}px`;
 
-            // appear (make them a bit more visible than before)
+            // appear (a bit more visible)
             frozen = false;
             c.style.opacity = String(rand(0.38, 0.78));
 
-            // live
             await new Promise(r => setTimeout(r, randInt(2400, 7200)));
 
-            // fade out (freeze while fading)
+            // fade out
             frozen = true;
             c.style.opacity = "0";
             await new Promise(r => setTimeout(r, 1400));
 
-            // delay before rebirth
             frozen = false;
             await new Promise(r => setTimeout(r, randInt(600, 2200)));
           }
@@ -1358,8 +786,7 @@
                 timers[i] -= intervals[i];
                 intervals[i] = rand(minInterval, maxInterval);
 
-                // black or transparent
-                const prob = base[i] * 0.85; // density
+                const prob = base[i] * 0.9; // density
                 on[i] = (Math.random() < prob) ? 1 : 0;
               }
             }
@@ -1390,9 +817,5 @@
       });
     });
   </script>
-</body>
-</html>
-
- 
 </body>
 </html>
