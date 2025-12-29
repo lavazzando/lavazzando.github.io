@@ -77,8 +77,8 @@
       height:60px;
       image-rendering:pixelated;
       opacity:0;
-      transition:opacity 1200ms ease;
-      filter: blur(0.2px);
+      transition:none;
+      filter:none;
     }
 
     header{
@@ -747,31 +747,32 @@
         let frozen = false;
 
         async function lifecycle(){
-          while (true){
-            // new position + size each cycle
-            const p = edgePosition();
-            c.style.left = `${p.x}px`;
-            c.style.top  = `${p.y}px`;
+  while (true){
+    // new position + size each cycle
+    const p = edgePosition();
+    c.style.left = `${p.x}px`;
+    c.style.top  = `${p.y}px`;
 
-            const size = rand(35, 65);
-            c.style.width = `${size}px`;
-            c.style.height = `${size}px`;
+    const size = rand(35, 65);
+    c.style.width = `${size}px`;
+    c.style.height = `${size}px`;
 
-            // appear (a bit more visible)
-            frozen = false;
-            c.style.opacity = String(rand(0.38, 0.78));
+    // POP IN (no fade)
+    frozen = false;
+    c.style.opacity = "0.7"; // pick a fixed visibility, or randomize if you prefer
 
-            await new Promise(r => setTimeout(r, randInt(2400, 7200)));
+    // visible time
+    await new Promise(r => setTimeout(r, randInt(700, 2400)));
 
-            // fade out
-            frozen = true;
-            c.style.opacity = "0";
-            await new Promise(r => setTimeout(r, 1400));
+    // POP OUT (no fade)
+    frozen = true;
+    c.style.opacity = "0";
 
-            frozen = false;
-            await new Promise(r => setTimeout(r, randInt(600, 2200)));
-          }
-        }
+    // hidden time
+    frozen = false;
+    await new Promise(r => setTimeout(r, randInt(500, 2200)));
+  }
+}
 
         let last = null;
         function tick(ts){
