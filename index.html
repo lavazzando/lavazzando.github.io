@@ -21,13 +21,41 @@
       color:var(--fg);
       font-family:var(--font-sans);
       overflow-x:hidden;
-      cursor:none;
+      cursor:none; /* hide OS cursor */
     }
 
     /* No native cursor anywhere */
     *, *::before, *::after{ cursor:none !important; }
 
-    /* Dynamic cursor square canvas */
+    /* Fullscreen dynamic background (squares) */
+    #bg-lines{
+      position:fixed;
+      inset:0;
+      width:100vw;
+      height:100vh;
+      z-index:0;
+      pointer-events:none;
+    }
+
+    /* Creature layer: above bg, behind content */
+    #creature-layer{
+      position:fixed;
+      inset:0;
+      z-index:0; /* same stack level as bg; DOM order places it above bg */
+      pointer-events:none;
+    }
+
+    .creature{
+      position:absolute;
+      width:60px;
+      height:60px;
+      image-rendering:pixelated;
+      opacity:0;
+      transition:opacity 1200ms ease;
+      filter: blur(0.2px);
+    }
+
+    /* Dynamic cursor square canvas (topmost) */
     #grad-square{
       position:fixed;
       width:50px;height:50px;
@@ -42,8 +70,7 @@
       max-width:1100px;
       margin:2.5rem auto 3rem;
       padding:0 1.5rem;
-      border:1px solid var(--border);
-      border-style: dashed solid:18px;
+      border:1px dashed var(--border);
       background:rgba(255,255,255,0.92);
       backdrop-filter:blur(6px);
       position:relative;
@@ -60,7 +87,6 @@
       justify-content:space-between;
     }
 
-    /* Site title: Cambria-ish, bold, size ~20 */
     .site-title{
       font-family: Cambria, serif;
       font-size:20px;
@@ -68,12 +94,7 @@
       letter-spacing:.06em;
       text-transform:uppercase;
     }
-    .site-title span{
-      color:var(--fg);
-      background:none;
-      -webkit-background-clip:initial;
-      background-clip:initial;
-    }
+    .site-title span{ color:var(--fg); }
 
     .tagline{
       font-size:.9rem;
@@ -95,14 +116,13 @@
       position:relative;
     }
 
-    /* Thicker underline, same accent color */
     nav a::after{
       content:"";
       position:absolute;
       left:0;
       bottom:-.12rem;
       width:0;
-      height:2px;              /* <-- thicker */
+      height:2px;
       background:var(--accent);
       transition:width 150ms ease;
     }
@@ -240,13 +260,12 @@
     footer a{color:var(--muted);text-decoration:none;}
     footer a:hover{color:var(--fg);text-decoration:underline;}
 
-    /* Wrapper spans for per-letter font randomization */
     .random-letter{
       display:inline-block;
       white-space:pre;
     }
 
-    /* Force the site-title letters specifically (even though they’re scrambled) */
+    /* Keep title readable even when scrambled */
     .site-title .random-letter{
       font-family: Cambria, serif !important;
       font-weight: 700 !important;
@@ -254,51 +273,18 @@
       letter-spacing: .06em;
       color: var(--fg);
     }
-    /* Fullscreen dynamic background */
-#bg-lines{
-  position:fixed;
-  inset:0;
-  width:100vw;
-  height:100vh;
-  z-index:0;
-  pointer-events:none;
-  opacity:1; /* l'opacità vera la gestiamo via globalAlpha nel render */
-}
-<div id="creature-layer" aria-hidden="true"></div>
-
-/* assicurati che il contenuto stia sopra */
-.frame{ position:relative; z-index:1; }
-    
-
-/* il tuo cursore sopra a tutto */
-#grad-square{ z-index:9999; }
-
-    /* Creature layer: behind content, above background */
-#creature-layer{
-  position:fixed;
-  inset:0;
-  z-index:0;           /* stesso livello del bg; la .frame ha z-index:1 */
-  pointer-events:none;
-}
-
-/* Each creature canvas */
-.creature{
-  position:absolute;
-  width:65px;          /* base size ~ +30% rispetto ai 50px del puntatore */
-  height:65px;
-  image-rendering:pixelated;
-  opacity:0;
-  transition:opacity 1200ms ease; /* fade in/out */
-  filter: blur(0.2px); /* quasi nulla, giusto per “ammorbidire” */
-}
-
-
   </style>
 </head>
 
 <body>
-  <canvas id="grad-square" width="50" height="50" aria-hidden="true"></canvas>
+  <!-- Background -->
   <canvas id="bg-lines" aria-hidden="true"></canvas>
+
+  <!-- Creature layer (must be in BODY, not in CSS) -->
+  <div id="creature-layer" aria-hidden="true"></div>
+
+  <!-- Pointer creature -->
+  <canvas id="grad-square" width="50" height="50" aria-hidden="true"></canvas>
 
   <div class="frame">
     <header>
@@ -398,14 +384,19 @@
   </div>
 
   <script>
-    // ===== Dynamic radial cursor square with random alpha + per-pixel FPS =====
+    // Footer year
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+
+  <script>
+    // ===== Pointer creature (your cursor) =====
     const canvas = document.getElementById("grad-square");
     const ctx = canvas.getContext("2d");
 
-    const cols = 10;
-    const rows = 10;
+    const pCols = 10;
+    const pRows = 10;
     const cellSize = 5;
-    const N = cols * rows;
+    const N = pCols * pRows;
 
     const baseAlpha = new Float32Array(N);
     const currentAlpha = new Float32Array(N);
@@ -416,15 +407,15 @@
     const minFps = 0.01;
     const maxFps = 8;
 
-    const cx = (cols - 1) / 2;
-    const cy = (rows - 1) / 2;
+    const cx = (pCols - 1) / 2;
+    const cy = (pRows - 1) / 2;
     const maxDist = Math.sqrt(cx * cx + cy * cy);
 
     let frozen = false;
 
     let idx = 0;
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
+    for (let y = 0; y < pRows; y++) {
+      for (let x = 0; x < pCols; x++) {
         const dx = x - cx;
         const dy = y - cy;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -445,8 +436,8 @@
       if (frozen) return;
 
       let i = 0;
-      for (let y = 0; y < rows; y++) {
-        for (let x = 0; x < cols; x++) {
+      for (let y = 0; y < pRows; y++) {
+        for (let x = 0; x < pCols; x++) {
           timers[i] += dt;
           if (timers[i] >= intervals[i]) {
             timers[i] -= intervals[i];
@@ -461,8 +452,8 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       let i = 0;
-      for (let y = 0; y < rows; y++) {
-        for (let x = 0; x < cols; x++) {
+      for (let y = 0; y < pRows; y++) {
+        for (let x = 0; x < pCols; x++) {
           const a = currentAlpha[i];
           if (a > 0) {
             ctx.fillStyle = `rgba(0, 0, 0, ${a})`;
@@ -496,14 +487,13 @@
         if (node.tagName === "A") { onLink = true; break; }
         node = node.parentElement;
       }
+
       frozen = onLink;
     });
-
-    document.getElementById("year").textContent = new Date().getFullYear();
   </script>
 
   <script>
-    // ===== Every-letter scramble across the whole site (preserving structure) =====
+    // ===== Random-font per-letter across the whole site (preserving structure) =====
     window.addEventListener("DOMContentLoaded", () => {
       const fonts = [
         "Courier New, monospace",
@@ -515,26 +505,23 @@
       ];
 
       const weights = [80, 200, 500];
-
       const randomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-      // TreeWalker over *text nodes* so we scramble EVERYTHING without deleting markup
       const walker = document.createTreeWalker(
         document.body,
         NodeFilter.SHOW_TEXT,
         {
           acceptNode(node) {
-            // skip empty/whitespace-only text
             if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
 
-            // skip script/style/noscript
             const p = node.parentElement;
             if (!p) return NodeFilter.FILTER_REJECT;
+
             const tag = p.tagName;
             if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT") return NodeFilter.FILTER_REJECT;
 
-            // skip the canvas cursor
-            if (p.closest && p.closest("#grad-square")) return NodeFilter.FILTER_REJECT;
+            // skip canvases / creature layer text (there shouldn't be)
+            if (p.closest && (p.closest("#grad-square") || p.closest("#bg-lines"))) return NodeFilter.FILTER_REJECT;
 
             return NodeFilter.FILTER_ACCEPT;
           }
@@ -550,7 +537,6 @@
         const frag = document.createDocumentFragment();
 
         for (const ch of text) {
-          // keep whitespace as-is (but still wrap it so spacing stays consistent)
           const s = document.createElement("span");
           s.className = "random-letter";
           s.textContent = ch;
@@ -563,333 +549,295 @@
       }
     });
   </script>
-<script>
-  // ===== Dynamic stretched-line background (slow + smooth) =====
-  const bg = document.getElementById("bg-lines");
-  const bctx = bg.getContext("2d", { alpha: true });
-
-  // "pixel" stirati (quasi linee)
-  const cellW = 2;   // larghezza "pixel"
-  const cellH = 46;  // altezza "pixel" -> linee verticali
-  const blurPx = 10; // blur per render graduale
-
-  // Opacità bassa
-  const baseOpacity = 0.055; // prova 0.03–0.08
-
-  // Pattern update 10x più lento:
-  // qui aggiorniamo il "rumore" ogni ~10 frame, ma renderizziamo sempre
-  const slowFactorFrames = 10;
-
-  // Campo di "intensità" che segue il mouse in modo graduale
-  let mx = window.innerWidth * 0.5, my = window.innerHeight * 0.5;
-  let tx = mx, ty = my;
-
-  function resizeBG(){
-    const dpr = window.devicePixelRatio || 1;
-    bg.width = Math.floor(window.innerWidth * dpr);
-    bg.height = Math.floor(window.innerHeight * dpr);
-    bg.style.width = window.innerWidth + "px";
-    bg.style.height = window.innerHeight + "px";
-    bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-  window.addEventListener("resize", resizeBG);
-  resizeBG();
-
-  window.addEventListener("mousemove", (e) => {
-    tx = e.clientX;
-    ty = e.clientY;
-  });
-
-  // Rumore lento ma morbido: valori che cambiano lentamente e interpolano
-  let noiseA = [];
-  let noiseB = [];
-  let tNoise = 0;
-
-  function rand01(){ return Math.random(); }
-
-  function buildNoise(cols, rows){
-    const arr = new Float32Array(cols * rows);
-    for(let i=0;i<arr.length;i++) arr[i] = rand01();
-    return arr;
-  }
-
-  function ensureNoiseSize(){
-    const cols = Math.ceil(window.innerWidth / cellW);
-    const rows = Math.ceil(window.innerHeight / cellH);
-    const needed = cols * rows;
-    if (noiseA.length !== needed){
-      noiseA = buildNoise(cols, rows);
-      noiseB = buildNoise(cols, rows);
-      tNoise = 0;
-    }
-    return { cols, rows };
-  }
-
-  let frameCount = 0;
-
-  function lerp(a,b,t){ return a + (b-a)*t; }
-
-  function renderBG(){
-    const { cols, rows } = ensureNoiseSize();
-
-    // easing del mouse (graduale)
-    mx = lerp(mx, tx, 0.12);
-    my = lerp(my, ty, 0.08);
-
-    // aggiorna lentamente il target noise ogni slowFactorFrames
-    frameCount++;
-    if (frameCount % slowFactorFrames === 0) {
-      noiseA = noiseB;
-      noiseB = buildNoise(cols, rows);
-      tNoise = 0;
-    }
-
-    // interpolazione graduale tra noiseA e noiseB
-    tNoise = Math.min(1, tNoise + 0.015); // velocità transizione (più basso = più lento)
-
-    // pulizia + blur per “completamente graduale”
-    bctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-    bctx.save();
-    bctx.filter = `blur(${blurPx}px)`;
-
-    // gradiente “campo” centrato sul mouse (morbido)
-    const g = bctx.createRadialGradient(mx, my, 0, mx, my, Math.max(window.innerWidth, window.innerHeight) * 0.55);
-    g.addColorStop(0, `rgba(0,0,0,${baseOpacity})`);
-    g.addColorStop(1, `rgba(0,0,0,0)`);
-    bctx.fillStyle = g;
-    bctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
-
-    // ora disegniamo le linee “pixel” stirate con alpha bassissima
-    // usando il gradiente sopra come “base” e aggiungendo variazioni lente
-    bctx.globalCompositeOperation = "multiply";
-
-    let i = 0;
-    for (let y = 0; y < rows; y++){
-      const py = y * cellH;
-      for (let x = 0; x < cols; x++){
-        const px = x * cellW;
-
-        // rumore interpolato (0..1)
-        const n = lerp(noiseA[i], noiseB[i], tNoise);
-
-        // alpha super soft (quadratica per evitare grana aggressiva)
-        const a = (n * n) * 0.4; // intensità: prova 0.06–0.18
-
-        bctx.fillStyle = `rgba(0,0,0,${a})`;
-        bctx.fillRect(px, py, cellW, cellH);
-
-        i++;
-      }
-    }
-
-    bctx.restore();
-    requestAnimationFrame(renderBG);
-  }
-
-  requestAnimationFrame(renderBG);
-</script>
 
   <script>
-  // ===== Edge creatures: 7–13 little cursor-beings that appear/disappear =====
-  window.addEventListener("DOMContentLoaded", () => {
-    const layer = document.getElementById("creature-layer");
-    if (!layer) return;
+    // ===== Dynamic background (non-stretched squares, darker + smooth) =====
+    const bg = document.getElementById("bg-lines");
+    const bctx = bg.getContext("2d", { alpha: true });
 
-    const randInt = (a,b) => Math.floor(a + Math.random()*(b-a+1));
-    const rand = (a,b) => a + Math.random()*(b-a);
+    const bgCols = 10;
+    const bgRows = 10;
+    const blurPx = 10;
+    const baseOpacity = 0.077; // +40% vs 0.055
+    const slowFactorFrames = 12;
 
-    const creatureCount = randInt(7, 13);
+    let mx = window.innerWidth * 0.5, my = window.innerHeight * 0.5;
+    let tx = mx, ty = my;
 
-    // Same grid as cursor
-    const cols = 10, rows = 10, cellSize = 5; // internal resolution (50x50)
-    const baseW = cols * cellSize; // 50
-    const baseH = rows * cellSize; // 50
+    function resizeBG(){
+      const dpr = window.devicePixelRatio || 1;
+      bg.width  = Math.floor(window.innerWidth * dpr);
+      bg.height = Math.floor(window.innerHeight * dpr);
+      bg.style.width = window.innerWidth + "px";
+      bg.style.height = window.innerHeight + "px";
+      bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener("resize", resizeBG);
+    resizeBG();
 
-    // Radial base like cursor (center=1 -> border=0)
-    const N = cols * rows;
-    const base = new Float32Array(N);
-    const cx = (cols - 1) / 2;
-    const cy = (rows - 1) / 2;
-    const maxDist = Math.sqrt(cx*cx + cy*cy);
+    window.addEventListener("mousemove", (e) => { tx = e.clientX; ty = e.clientY; });
 
-    let k = 0;
-    for (let y=0; y<rows; y++){
-      for (let x=0; x<cols; x++){
-        const dx = x - cx, dy = y - cy;
+    function lerp(a,b,t){ return a + (b-a)*t; }
+    function rand01(){ return Math.random(); }
+
+    const Nbg = bgCols * bgRows;
+    let A = new Float32Array(Nbg);
+    let B = new Float32Array(Nbg);
+    let tPattern = 0;
+    let frameCount = 0;
+
+    // radial base like pointer
+    const base = new Float32Array(Nbg);
+    const ccx = (bgCols - 1) / 2;
+    const ccy = (bgRows - 1) / 2;
+    const maxDist2 = Math.sqrt(ccx*ccx + ccy*ccy);
+    let i0 = 0;
+    for (let y=0; y<bgRows; y++){
+      for (let x=0; x<bgCols; x++){
+        const dx = x - ccx, dy = y - ccy;
         const dist = Math.sqrt(dx*dx + dy*dy);
-        let t = dist / maxDist; if (t>1) t=1;
-        base[k++] = 1 - t;
+        let t = dist / maxDist2; if (t>1) t=1;
+        base[i0++] = 1 - t;
       }
     }
 
-    function edgePosition(margin=18){
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-
-      // choose one of 4 edges, and place near it
-      const edge = randInt(0,3);
-      let x, y;
-
-      if (edge === 0) { // top
-        x = rand(margin, w - margin);
-        y = rand(margin, margin + 60);
-      } else if (edge === 1) { // bottom
-        x = rand(margin, w - margin);
-        y = rand(h - margin - 60, h - margin);
-      } else if (edge === 2) { // left
-        x = rand(margin, margin + 60);
-        y = rand(margin, h - margin);
-      } else { // right
-        x = rand(w - margin - 60, w - margin);
-        y = rand(margin, h - margin);
+    function reseed(arr){
+      for (let i=0; i<Nbg; i++){
+        arr[i] = base[i] * rand01();
       }
-
-      return { x, y };
     }
+    reseed(A); reseed(B);
 
-    function makeCreature(){
-      const c = document.createElement("canvas");
-      c.className = "creature";
-      c.width = baseW;
-      c.height = baseH;
+    function renderBG(){
+      mx = lerp(mx, tx, 0.06);
+      my = lerp(my, ty, 0.06);
 
-      // random size: +-30% vs pointer (50px). We'll use 35..65px-ish
-      const size = rand(35, 65);
-      c.style.width = `${size}px`;
-      c.style.height = `${size}px`;
-
-      // initial position near edges
-      const p = edgePosition();
-      c.style.left = `${p.x}px`;
-      c.style.top  = `${p.y}px`;
-
-      layer.appendChild(c);
-
-      const ctx = c.getContext("2d");
-      ctx.imageSmoothingEnabled = false;
-
-      // state
-      let alive = false;
-      let frozen = false;
-
-      // slower than cursor: updates are rare
-      const minInterval = 0.45; // seconds
-      const maxInterval = 1.8;  // seconds
-      const nextUpdate = new Float32Array(N);
-      const timer = new Float32Array(N);
-      const on = new Uint8Array(N); // 0/1 (black or transparent)
-
-      // init per-cell intervals + random phase
-      for (let i=0; i<N; i++){
-        nextUpdate[i] = rand(minInterval, maxInterval);
-        timer[i] = rand(0, nextUpdate[i]);
-        on[i] = Math.random() < (base[i]*0.55) ? 1 : 0; // initial density
+      frameCount++;
+      if (frameCount % slowFactorFrames === 0){
+        A = B;
+        B = new Float32Array(Nbg);
+        reseed(B);
+        tPattern = 0;
       }
+      tPattern = Math.min(1, tPattern + 0.02);
 
-      function draw(){
-        ctx.clearRect(0,0,baseW,baseH);
-        let i=0;
-        for (let y=0; y<rows; y++){
-          for (let x=0; x<cols; x++){
-            if (on[i]){
-              // ONLY black or transparent:
-              ctx.fillStyle = "#000";
-              ctx.fillRect(x*cellSize, y*cellSize, cellSize, cellSize);
-            }
-            i++;
+      bctx.clearRect(0,0,window.innerWidth, window.innerHeight);
+      bctx.save();
+      bctx.filter = `blur(${blurPx}px)`;
+
+      const g = bctx.createRadialGradient(
+        mx, my, 0,
+        mx, my, Math.max(window.innerWidth, window.innerHeight) * 0.6
+      );
+      g.addColorStop(0, `rgba(0,0,0,${baseOpacity})`);
+      g.addColorStop(1, `rgba(0,0,0,0)`);
+      bctx.fillStyle = g;
+      bctx.fillRect(0,0,window.innerWidth, window.innerHeight);
+
+      const cellW = window.innerWidth / bgCols;
+      const cellH = window.innerHeight / bgRows;
+
+      bctx.globalCompositeOperation = "multiply";
+
+      let k = 0;
+      for (let y=0; y<bgRows; y++){
+        for (let x=0; x<bgCols; x++){
+          const n = lerp(A[k], B[k], tPattern);
+          const a = Math.pow(n, 1.7) * 0.22; // darker squares
+          if (a > 0.001){
+            bctx.fillStyle = `rgba(0,0,0,${a})`;
+            bctx.fillRect(x*cellW, y*cellH, cellW, cellH);
           }
+          k++;
         }
       }
 
-      // life cycle: appear -> live -> fade -> reposition -> repeat
-      async function lifecycle(){
-        while (true){
-          // choose new edge position sometimes
-          if (Math.random() < 0.65){
-            const p = edgePosition();
-            c.style.left = `${p.x}px`;
-            c.style.top  = `${p.y}px`;
-          }
+      bctx.restore();
+      requestAnimationFrame(renderBG);
+    }
+    requestAnimationFrame(renderBG);
+  </script>
 
-          // random size each cycle
-          const size = rand(35, 65);
-          c.style.width = `${size}px`;
-          c.style.height = `${size}px`;
+  <script>
+    // ===== Edge creatures (7–13), black-or-transparent pixels, appear/disappear =====
+    window.addEventListener("DOMContentLoaded", () => {
+      const layer = document.getElementById("creature-layer");
+      if (!layer) return;
 
-          // appear
-          alive = true;
-          c.style.opacity = String(rand(0.25, 0.6)); // visible but subtle
-          frozen = false;
+      const randInt = (a,b) => Math.floor(a + Math.random()*(b-a+1));
+      const rand = (a,b) => a + Math.random()*(b-a);
 
-          // live time
-          const liveMs = randInt(2200, 6200);
-          await new Promise(r => setTimeout(r, liveMs));
+      const creatureCount = randInt(7, 13);
 
-          // fade out
-          frozen = true; // stop changing while fading (looks intentional)
-          c.style.opacity = "0";
-          const fadeMs = 1400;
-          await new Promise(r => setTimeout(r, fadeMs));
+      const cols = 10, rows = 10, cellSize = 5;
+      const baseW = cols * cellSize;
+      const baseH = rows * cellSize;
+      const N = cols * rows;
 
-          // "rebirth delay"
-          alive = false;
-          frozen = false;
-          await new Promise(r => setTimeout(r, randInt(600, 2200)));
+      // radial base probability
+      const base = new Float32Array(N);
+      const cx = (cols - 1) / 2;
+      const cy = (rows - 1) / 2;
+      const maxDist = Math.sqrt(cx*cx + cy*cy);
+
+      let k = 0;
+      for (let y=0; y<rows; y++){
+        for (let x=0; x<cols; x++){
+          const dx = x - cx, dy = y - cy;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          let t = dist / maxDist; if (t>1) t=1;
+          base[k++] = 1 - t;
         }
       }
 
-      // animation / update loop
-      let last = null;
-      function tick(ts){
-        if (last === null) last = ts;
-        const dt = (ts - last) / 1000;
-        last = ts;
+      function edgePosition(margin=18){
+        const w = window.innerWidth;
+        const h = window.innerHeight;
 
-        if (!frozen){
-          for (let i=0; i<N; i++){
-            timer[i] += dt;
-            if (timer[i] >= nextUpdate[i]){
-              timer[i] -= nextUpdate[i];
-              nextUpdate[i] = rand(minInterval, maxInterval);
+        const edge = randInt(0,3);
+        let x, y;
 
-              // black-or-transparent decision.
-              // Use radial base as probability (center more likely ON)
-              const prob = base[i] * 0.7; // density control
-              on[i] = (Math.random() < prob) ? 1 : 0;
-            }
-          }
-          draw();
+        if (edge === 0) { // top
+          x = rand(margin, w - margin);
+          y = rand(margin, margin + 80);
+        } else if (edge === 1) { // bottom
+          x = rand(margin, w - margin);
+          y = rand(h - margin - 80, h - margin);
+        } else if (edge === 2) { // left
+          x = rand(margin, margin + 80);
+          y = rand(margin, h - margin);
+        } else { // right
+          x = rand(w - margin - 80, w - margin);
+          y = rand(margin, h - margin);
         }
-
-        requestAnimationFrame(tick);
+        return { x, y };
       }
 
-      draw();
-      requestAnimationFrame(tick);
-      lifecycle();
+      function makeCreature(){
+        const c = document.createElement("canvas");
+        c.className = "creature";
+        c.width = baseW;
+        c.height = baseH;
 
-      return c;
-    }
+        // random size: pointer 50px -> creatures around 35..65px
+        const size = rand(35, 65);
+        c.style.width = `${size}px`;
+        c.style.height = `${size}px`;
 
-    // create many creatures
-    const creatures = [];
-    for (let i=0; i<creatureCount; i++){
-      creatures.push(makeCreature());
-    }
-
-    // keep them inside edges on resize
-    window.addEventListener("resize", () => {
-      for (const c of creatures){
         const p = edgePosition();
         c.style.left = `${p.x}px`;
         c.style.top  = `${p.y}px`;
+
+        layer.appendChild(c);
+
+        const ctx = c.getContext("2d");
+        ctx.imageSmoothingEnabled = false;
+
+        // black-or-transparent grid
+        const on = new Uint8Array(N);
+        const timers = new Float32Array(N);
+        const intervals = new Float32Array(N);
+
+        // slower changes than cursor
+        const minInterval = 0.8;
+        const maxInterval = 3.2;
+
+        for (let i=0; i<N; i++){
+          intervals[i] = rand(minInterval, maxInterval);
+          timers[i] = rand(0, intervals[i]);
+          on[i] = (Math.random() < (base[i] * 0.65)) ? 1 : 0;
+        }
+
+        function draw(){
+          ctx.clearRect(0,0,baseW,baseH);
+          let i = 0;
+          for (let y=0; y<rows; y++){
+            for (let x=0; x<cols; x++){
+              if (on[i]){
+                ctx.fillStyle = "#000";
+                ctx.fillRect(x*cellSize, y*cellSize, cellSize, cellSize);
+              }
+              i++;
+            }
+          }
+        }
+
+        let frozen = false;
+
+        async function lifecycle(){
+          while (true){
+            // reposition each cycle
+            const p = edgePosition();
+            c.style.left = `${p.x}px`;
+            c.style.top  = `${p.y}px`;
+
+            // size each cycle
+            const size = rand(35, 65);
+            c.style.width = `${size}px`;
+            c.style.height = `${size}px`;
+
+            // appear (make them a bit more visible than before)
+            frozen = false;
+            c.style.opacity = String(rand(0.38, 0.78));
+
+            // live
+            await new Promise(r => setTimeout(r, randInt(2400, 7200)));
+
+            // fade out (freeze while fading)
+            frozen = true;
+            c.style.opacity = "0";
+            await new Promise(r => setTimeout(r, 1400));
+
+            // delay before rebirth
+            frozen = false;
+            await new Promise(r => setTimeout(r, randInt(600, 2200)));
+          }
+        }
+
+        let last = null;
+        function tick(ts){
+          if (last === null) last = ts;
+          const dt = (ts - last) / 1000;
+          last = ts;
+
+          if (!frozen){
+            for (let i=0; i<N; i++){
+              timers[i] += dt;
+              if (timers[i] >= intervals[i]){
+                timers[i] -= intervals[i];
+                intervals[i] = rand(minInterval, maxInterval);
+
+                // black or transparent
+                const prob = base[i] * 0.85; // density
+                on[i] = (Math.random() < prob) ? 1 : 0;
+              }
+            }
+            draw();
+          }
+
+          requestAnimationFrame(tick);
+        }
+
+        draw();
+        requestAnimationFrame(tick);
+        lifecycle();
+
+        return c;
       }
+
+      const creatures = [];
+      for (let i=0; i<creatureCount; i++){
+        creatures.push(makeCreature());
+      }
+
+      window.addEventListener("resize", () => {
+        for (const c of creatures){
+          const p = edgePosition();
+          c.style.left = `${p.x}px`;
+          c.style.top  = `${p.y}px`;
+        }
+      });
     });
-  });
-</script>
-
-
-
-
+  </script>
 </body>
 </html>
