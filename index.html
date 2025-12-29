@@ -264,12 +264,34 @@
   pointer-events:none;
   opacity:1; /* l'opacità vera la gestiamo via globalAlpha nel render */
 }
+<div id="creature-layer" aria-hidden="true"></div>
 
 /* assicurati che il contenuto stia sopra */
 .frame{ position:relative; z-index:1; }
+    
 
 /* il tuo cursore sopra a tutto */
 #grad-square{ z-index:9999; }
+
+    /* Creature layer: behind content, above background */
+#creature-layer{
+  position:fixed;
+  inset:0;
+  z-index:0;           /* stesso livello del bg; la .frame ha z-index:1 */
+  pointer-events:none;
+}
+
+/* Each creature canvas */
+.creature{
+  position:absolute;
+  width:65px;          /* base size ~ +30% rispetto ai 50px del puntatore */
+  height:65px;
+  image-rendering:pixelated;
+  opacity:0;
+  transition:opacity 1200ms ease; /* fade in/out */
+  filter: blur(0.2px); /* quasi nulla, giusto per “ammorbidire” */
+}
+
 
   </style>
 </head>
@@ -666,6 +688,206 @@
 
   requestAnimationFrame(renderBG);
 </script>
+
+  <script>
+  // ===== Edge creatures: 7–13 little cursor-beings that appear/disappear =====
+  window.addEventListener("DOMContentLoaded", () => {
+    const layer = document.getElementById("creature-layer");
+    if (!layer) return;
+
+    const randInt = (a,b) => Math.floor(a + Math.random()*(b-a+1));
+    const rand = (a,b) => a + Math.random()*(b-a);
+
+    const creatureCount = randInt(7, 13);
+
+    // Same grid as cursor
+    const cols = 10, rows = 10, cellSize = 5; // internal resolution (50x50)
+    const baseW = cols * cellSize; // 50
+    const baseH = rows * cellSize; // 50
+
+    // Radial base like cursor (center=1 -> border=0)
+    const N = cols * rows;
+    const base = new Float32Array(N);
+    const cx = (cols - 1) / 2;
+    const cy = (rows - 1) / 2;
+    const maxDist = Math.sqrt(cx*cx + cy*cy);
+
+    let k = 0;
+    for (let y=0; y<rows; y++){
+      for (let x=0; x<cols; x++){
+        const dx = x - cx, dy = y - cy;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        let t = dist / maxDist; if (t>1) t=1;
+        base[k++] = 1 - t;
+      }
+    }
+
+    function edgePosition(margin=18){
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      // choose one of 4 edges, and place near it
+      const edge = randInt(0,3);
+      let x, y;
+
+      if (edge === 0) { // top
+        x = rand(margin, w - margin);
+        y = rand(margin, margin + 60);
+      } else if (edge === 1) { // bottom
+        x = rand(margin, w - margin);
+        y = rand(h - margin - 60, h - margin);
+      } else if (edge === 2) { // left
+        x = rand(margin, margin + 60);
+        y = rand(margin, h - margin);
+      } else { // right
+        x = rand(w - margin - 60, w - margin);
+        y = rand(margin, h - margin);
+      }
+
+      return { x, y };
+    }
+
+    function makeCreature(){
+      const c = document.createElement("canvas");
+      c.className = "creature";
+      c.width = baseW;
+      c.height = baseH;
+
+      // random size: +-30% vs pointer (50px). We'll use 35..65px-ish
+      const size = rand(35, 65);
+      c.style.width = `${size}px`;
+      c.style.height = `${size}px`;
+
+      // initial position near edges
+      const p = edgePosition();
+      c.style.left = `${p.x}px`;
+      c.style.top  = `${p.y}px`;
+
+      layer.appendChild(c);
+
+      const ctx = c.getContext("2d");
+      ctx.imageSmoothingEnabled = false;
+
+      // state
+      let alive = false;
+      let frozen = false;
+
+      // slower than cursor: updates are rare
+      const minInterval = 0.45; // seconds
+      const maxInterval = 1.8;  // seconds
+      const nextUpdate = new Float32Array(N);
+      const timer = new Float32Array(N);
+      const on = new Uint8Array(N); // 0/1 (black or transparent)
+
+      // init per-cell intervals + random phase
+      for (let i=0; i<N; i++){
+        nextUpdate[i] = rand(minInterval, maxInterval);
+        timer[i] = rand(0, nextUpdate[i]);
+        on[i] = Math.random() < (base[i]*0.55) ? 1 : 0; // initial density
+      }
+
+      function draw(){
+        ctx.clearRect(0,0,baseW,baseH);
+        let i=0;
+        for (let y=0; y<rows; y++){
+          for (let x=0; x<cols; x++){
+            if (on[i]){
+              // ONLY black or transparent:
+              ctx.fillStyle = "#000";
+              ctx.fillRect(x*cellSize, y*cellSize, cellSize, cellSize);
+            }
+            i++;
+          }
+        }
+      }
+
+      // life cycle: appear -> live -> fade -> reposition -> repeat
+      async function lifecycle(){
+        while (true){
+          // choose new edge position sometimes
+          if (Math.random() < 0.65){
+            const p = edgePosition();
+            c.style.left = `${p.x}px`;
+            c.style.top  = `${p.y}px`;
+          }
+
+          // random size each cycle
+          const size = rand(35, 65);
+          c.style.width = `${size}px`;
+          c.style.height = `${size}px`;
+
+          // appear
+          alive = true;
+          c.style.opacity = String(rand(0.25, 0.6)); // visible but subtle
+          frozen = false;
+
+          // live time
+          const liveMs = randInt(2200, 6200);
+          await new Promise(r => setTimeout(r, liveMs));
+
+          // fade out
+          frozen = true; // stop changing while fading (looks intentional)
+          c.style.opacity = "0";
+          const fadeMs = 1400;
+          await new Promise(r => setTimeout(r, fadeMs));
+
+          // "rebirth delay"
+          alive = false;
+          frozen = false;
+          await new Promise(r => setTimeout(r, randInt(600, 2200)));
+        }
+      }
+
+      // animation / update loop
+      let last = null;
+      function tick(ts){
+        if (last === null) last = ts;
+        const dt = (ts - last) / 1000;
+        last = ts;
+
+        if (!frozen){
+          for (let i=0; i<N; i++){
+            timer[i] += dt;
+            if (timer[i] >= nextUpdate[i]){
+              timer[i] -= nextUpdate[i];
+              nextUpdate[i] = rand(minInterval, maxInterval);
+
+              // black-or-transparent decision.
+              // Use radial base as probability (center more likely ON)
+              const prob = base[i] * 0.7; // density control
+              on[i] = (Math.random() < prob) ? 1 : 0;
+            }
+          }
+          draw();
+        }
+
+        requestAnimationFrame(tick);
+      }
+
+      draw();
+      requestAnimationFrame(tick);
+      lifecycle();
+
+      return c;
+    }
+
+    // create many creatures
+    const creatures = [];
+    for (let i=0; i<creatureCount; i++){
+      creatures.push(makeCreature());
+    }
+
+    // keep them inside edges on resize
+    window.addEventListener("resize", () => {
+      for (const c of creatures){
+        const p = edgePosition();
+        c.style.left = `${p.x}px`;
+        c.style.top  = `${p.y}px`;
+      }
+    });
+  });
+</script>
+
 
 
 
