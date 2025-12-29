@@ -651,7 +651,7 @@
         const n = lerp(noiseA[i], noiseB[i], tNoise);
 
         // alpha super soft (quadratica per evitare grana aggressiva)
-        const a = (n * n) * 0.12; // intensità: prova 0.06–0.18
+        const a = (n * n) * 0.7; // intensità: prova 0.06–0.18
 
         bctx.fillStyle = `rgba(0,0,0,${a})`;
         bctx.fillRect(px, py, cellW, cellH);
