@@ -42,9 +42,10 @@
       max-width:1100px;
       margin:2.5rem auto 3rem;
       padding:0 1.5rem;
-      border:3px solid var(--border);
-      border-style: dashed double:38px;
+      border:1px solid var(--border);
+      border-radius:18px;
       background:rgba(255,255,255,0.92);
+      backdrop-filter:blur(6px);
       position:relative;
       z-index:1;
     }
@@ -118,7 +119,10 @@
     }
     @media(max-width:800px){.layout{grid-template-columns:1fr;}}
 
-   .intro h1{font-size:clamp(2.2rem,4vw,2.8rem);margin:0 0 .75rem;}
+    .intro h1{
+      font-size:clamp(2.2rem,4vw,2.8rem);
+      margin:0 0 .75rem;
+    }
 
     .intro p{
       margin:0 0 .75rem;
@@ -243,15 +247,12 @@
     }
 
     /* Force the site-title letters specifically (even though they’re scrambled) */
-   .site-title{
-  font-family: var(--font-mono);
-  font-size:.95rem;
-  letter-spacing:.12em;
-  text-transform:uppercase;
-  font-weight: normal; /* <-- add this (prevents forced bold look) */
-}
-intro
-    
+    .site-title .random-letter{
+      font-family: Cambria, serif !important;
+      font-weight: 700 !important;
+      font-size: 20px !important;
+      letter-spacing: .06em;
+      color: var(--fg);
     }
   </style>
 </head>
@@ -505,4 +506,22 @@ intro
       while ((n = walker.nextNode())) textNodes.push(n);
 
       for (const textNode of textNodes) {
-        const text = te
+        const text = textNode.nodeValue;
+        const frag = document.createDocumentFragment();
+
+        for (const ch of text) {
+          // keep whitespace as-is (but still wrap it so spacing stays consistent)
+          const s = document.createElement("span");
+          s.className = "random-letter";
+          s.textContent = ch;
+          s.style.fontFamily = randomItem(fonts);
+          s.style.fontWeight = String(randomItem(weights));
+          frag.appendChild(s);
+        }
+
+        textNode.parentNode.replaceChild(frag, textNode);
+      }
+    });
+  </script>
+</body>
+</html>
