@@ -541,30 +541,31 @@
       }
     });
   </script>
-  <script>
-  // ===== Dynamic stretched-line background (slow + smooth) =====
+<script>
+  // ===== Dynamic background (square pixels like the cursor, slow + smooth) =====
   const bg = document.getElementById("bg-lines");
   const bctx = bg.getContext("2d", { alpha: true });
 
-  // "pixel" stirati (quasi linee)
-  const cellW = 2;   // larghezza "pixel"
-  const cellH = 46;  // altezza "pixel" -> linee verticali
-  const blurPx = 10; // blur per render graduale
+  // Square cells (like the cursor)
+  const cols = 10;
+  const rows = 10;
 
-  // Opacità bassa
-  const baseOpacity = 0.055; // prova 0.03–0.08
+  // Softer blur for gradual look
+  const blurPx = 10;
 
-  // Pattern update 10x più lento:
-  // qui aggiorniamo il "rumore" ogni ~10 frame, ma renderizziamo sempre
-  const slowFactorFrames = 10;
+  // +40% opacity vs previous (0.055 * 1.4 = 0.077)
+  const baseOpacity = 0.077;
 
-  // Campo di "intensità" che segue il mouse in modo graduale
+  // Much slower refresh
+  const slowFactorFrames = 12; // update target pattern every ~12 frames
+
+  // Mouse easing
   let mx = window.innerWidth * 0.5, my = window.innerHeight * 0.5;
   let tx = mx, ty = my;
 
   function resizeBG(){
     const dpr = window.devicePixelRatio || 1;
-    bg.width = Math.floor(window.innerWidth * dpr);
+    bg.width  = Math.floor(window.innerWidth * dpr);
     bg.height = Math.floor(window.innerHeight * dpr);
     bg.style.width = window.innerWidth + "px";
     bg.style.height = window.innerHeight + "px";
@@ -578,85 +579,98 @@
     ty = e.clientY;
   });
 
-  // Rumore lento ma morbido: valori che cambiano lentamente e interpolano
-  let noiseA = [];
-  let noiseB = [];
-  let tNoise = 0;
-
+  function lerp(a,b,t){ return a + (b-a)*t; }
   function rand01(){ return Math.random(); }
 
-  function buildNoise(cols, rows){
-    const arr = new Float32Array(cols * rows);
-    for(let i=0;i<arr.length;i++) arr[i] = rand01();
-    return arr;
-  }
-
-  function ensureNoiseSize(){
-    const cols = Math.ceil(window.innerWidth / cellW);
-    const rows = Math.ceil(window.innerHeight / cellH);
-    const needed = cols * rows;
-    if (noiseA.length !== needed){
-      noiseA = buildNoise(cols, rows);
-      noiseB = buildNoise(cols, rows);
-      tNoise = 0;
-    }
-    return { cols, rows };
-  }
-
+  // Two patterns that we interpolate between, super slowly
+  const N = cols * rows;
+  let A = new Float32Array(N);
+  let B = new Float32Array(N);
+  let tPattern = 0;
   let frameCount = 0;
 
-  function lerp(a,b,t){ return a + (b-a)*t; }
+  // radial base like your cursor: center 1 -> border 0
+  const base = new Float32Array(N);
+  const cx = (cols - 1) / 2;
+  const cy = (rows - 1) / 2;
+  const maxDist = Math.sqrt(cx*cx + cy*cy);
+
+  let i = 0;
+  for (let y=0; y<rows; y++){
+    for (let x=0; x<cols; x++){
+      const dx = x - cx;
+      const dy = y - cy;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      let tt = dist / maxDist;
+      if (tt > 1) tt = 1;
+      base[i] = 1 - tt;
+      i++;
+    }
+  }
+
+  function reseed(arr){
+    for (let i=0; i<N; i++){
+      // random multiplier * radial base (like cursor)
+      arr[i] = base[i] * rand01();
+    }
+  }
+
+  reseed(A);
+  reseed(B);
 
   function renderBG(){
-    const { cols, rows } = ensureNoiseSize();
+    // smooth follow
+    mx = lerp(mx, tx, 0.06);
+    my = lerp(my, ty, 0.06);
 
-    // easing del mouse (graduale)
-    mx = lerp(mx, tx, 0.08);
-    my = lerp(my, ty, 0.08);
-
-    // aggiorna lentamente il target noise ogni slowFactorFrames
+    // every few frames, start transitioning to a new pattern (slow)
     frameCount++;
-    if (frameCount % slowFactorFrames === 0) {
-      noiseA = noiseB;
-      noiseB = buildNoise(cols, rows);
-      tNoise = 0;
+    if (frameCount % slowFactorFrames === 0){
+      A = B;
+      B = new Float32Array(N);
+      reseed(B);
+      tPattern = 0;
     }
 
-    // interpolazione graduale tra noiseA e noiseB
-    tNoise = Math.min(1, tNoise + 0.015); // velocità transizione (più basso = più lento)
+    // super gradual interpolation
+    tPattern = Math.min(1, tPattern + 0.02);
 
-    // pulizia + blur per “completamente graduale”
-    bctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    // clear + blur for “completely gradual”
+    bctx.clearRect(0,0,window.innerWidth, window.innerHeight);
     bctx.save();
     bctx.filter = `blur(${blurPx}px)`;
 
-    // gradiente “campo” centrato sul mouse (morbido)
-    const g = bctx.createRadialGradient(mx, my, 0, mx, my, Math.max(window.innerWidth, window.innerHeight) * 0.55);
+    // big radial wash centered on mouse (low but darker now)
+    const g = bctx.createRadialGradient(
+      mx, my, 0,
+      mx, my, Math.max(window.innerWidth, window.innerHeight) * 0.6
+    );
     g.addColorStop(0, `rgba(0,0,0,${baseOpacity})`);
     g.addColorStop(1, `rgba(0,0,0,0)`);
     bctx.fillStyle = g;
-    bctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+    bctx.fillRect(0,0,window.innerWidth, window.innerHeight);
 
-    // ora disegniamo le linee “pixel” stirate con alpha bassissima
-    // usando il gradiente sopra come “base” e aggiungendo variazioni lente
+    // grid cell size in screen pixels
+    const cellW = window.innerWidth / cols;
+    const cellH = window.innerHeight / rows;
+
+    // multiply makes it feel like “ink in paper”
     bctx.globalCompositeOperation = "multiply";
 
-    let i = 0;
-    for (let y = 0; y < rows; y++){
-      const py = y * cellH;
-      for (let x = 0; x < cols; x++){
-        const px = x * cellW;
+    // draw squares across the whole viewport
+    let k = 0;
+    for (let y=0; y<rows; y++){
+      for (let x=0; x<cols; x++){
+        const n = lerp(A[k], B[k], tPattern);
 
-        // rumore interpolato (0..1)
-        const n = lerp(noiseA[i], noiseB[i], tNoise);
-
-        // alpha super soft (quadratica per evitare grana aggressiva)
-        const a = (n * n) * 0.12; // intensità: prova 0.06–0.18
-
-        bctx.fillStyle = `rgba(0,0,0,${a})`;
-        bctx.fillRect(px, py, cellW, cellH);
-
-        i++;
+        // darker squares: curve + gain
+        // (n^1.7 gives more contrast, then scale)
+        const a = Math.pow(n, 1.7) * 0.22; // try 0.16–0.28
+        if (a > 0.001){
+          bctx.fillStyle = `rgba(0,0,0,${a})`;
+          bctx.fillRect(x*cellW, y*cellH, cellW, cellH);
+        }
+        k++;
       }
     }
 
@@ -666,6 +680,7 @@
 
   requestAnimationFrame(renderBG);
 </script>
+
 
 </body>
 </html>
