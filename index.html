@@ -717,38 +717,73 @@
         const ctx = c.getContext("2d");
         ctx.imageSmoothingEnabled = false;
 
-        const on = new Uint8Array(N);
-        const timers = new Float32Array(N);
-        const intervals = new Float32Array(N);
+       // --- Pointer-like alpha per cell (not just on/off) ---
+const alpha = new Float32Array(N);
+const timers = new Float32Array(N);
+const intervals = new Float32Array(N);
 
-        const minInterval = 0.8; // slower flicker
-        const maxInterval = 3.2;
+// slower per-cell updates (more “calm”)
+const minInterval = 1.6;
+const maxInterval = 6.0;
 
-        for (let i=0; i<N; i++){
-          intervals[i] = rand(minInterval, maxInterval);
-          timers[i] = rand(0, intervals[i]);
-          on[i] = (Math.random() < (base[i] * 0.7)) ? 1 : 0;
-        }
+// init
+for (let i=0; i<N; i++){
+  intervals[i] = rand(minInterval, maxInterval);
+  timers[i] = rand(0, intervals[i]);
+  alpha[i] = base[i] * Math.random(); // same as pointer: base * randomMul
+}
 
-        function draw(){
-          ctx.clearRect(0,0,baseW,baseH);
-          let i = 0;
-          for (let y=0; y<rows; y++){
-            for (let x=0; x<cols; x++){
-              if (on[i]){
-                ctx.fillStyle = "#000";
-                ctx.fillRect(x*cellSize, y*cellSize, cellSize, cellSize);
-              }
-              i++;
-            }
-          }
-        }
+function draw(){
+  ctx.clearRect(0,0,baseW,baseH);
+  let i = 0;
+  for (let y=0; y<rows; y++){
+    for (let x=0; x<cols; x++){
+      const a = alpha[i]; // 0..1
+      if (a > 0.01){
+        ctx.fillStyle = `rgba(0,0,0,${a})`; // intermediate transparency like pointer
+        ctx.fillRect(x*cellSize, y*cellSize, cellSize, cellSize);
+      }
+      i++;
+    }
+  }
+}
 
-        let frozen = false;
+// tick updates (slow flicker)
+let last = null;
+function tick(ts){
+  if (last === null) last = ts;
+  const dt = (ts - last) / 1000;
+  last = ts;
 
-        async function lifecycle(){
+  if (!frozen){
+    for (let i=0; i<N; i++){
+      timers[i] += dt;
+      if (timers[i] >= intervals[i]){
+        timers[i] -= intervals[i];
+        intervals[i] = rand(minInterval, maxInterval);
+        alpha[i] = base[i] * Math.random(); // pointer logic
+      }
+    }
+    draw();
+  }
+
+  requestAnimationFrame(tick);
+}
+
+draw();
+requestAnimationFrame(tick);
+
+// --- Instant POP in/out, but slower overall ---
+async function lifecycle(){
   while (true){
-    // new position + size each cycle
+    // wait hidden longer (slower appear rate)
+    c.style.opacity = "0";
+    frozen = false;
+
+    // hidden time: increase these to make appearances rarer
+    await new Promise(r => setTimeout(r, randInt(2200, 9000)));
+
+    // reposition + size each appearance
     const p = edgePosition();
     c.style.left = `${p.x}px`;
     c.style.top  = `${p.y}px`;
@@ -757,49 +792,22 @@
     c.style.width = `${size}px`;
     c.style.height = `${size}px`;
 
-    // POP IN (no fade)
+    // POP IN
+    // (slightly subtle, but visible)
+    c.style.opacity = String(rand(0.35, 0.75));
     frozen = false;
-    c.style.opacity = "0.7"; // pick a fixed visibility, or randomize if you prefer
 
-    // visible time
-    await new Promise(r => setTimeout(r, randInt(700, 2400)));
+    // visible time: longer, calmer
+    await new Promise(r => setTimeout(r, randInt(1800, 6500)));
 
-    // POP OUT (no fade)
+    // POP OUT
     frozen = true;
     c.style.opacity = "0";
-
-    // hidden time
     frozen = false;
-    await new Promise(r => setTimeout(r, randInt(500, 2200)));
   }
 }
 
-        let last = null;
-        function tick(ts){
-          if (last === null) last = ts;
-          const dt = (ts - last) / 1000;
-          last = ts;
-
-          if (!frozen){
-            for (let i=0; i<N; i++){
-              timers[i] += dt;
-              if (timers[i] >= intervals[i]){
-                timers[i] -= intervals[i];
-                intervals[i] = rand(minInterval, maxInterval);
-
-                const prob = base[i] * 0.9; // density
-                on[i] = (Math.random() < prob) ? 1 : 0;
-              }
-            }
-            draw();
-          }
-
-          requestAnimationFrame(tick);
-        }
-
-        draw();
-        requestAnimationFrame(tick);
-        lifecycle();
+lifecycle();
 
         return c;
       }
