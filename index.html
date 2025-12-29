@@ -549,6 +549,557 @@
       }
     });
   </script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Matteo Traverso – Sound Artist</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    :root{
+      --bg:#fff;--fg:#111;--muted:#555;--accent:#ff4f9a;--border:#ccc;
+      --font-sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      --font-mono:"SF Mono",ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    }
+
+    *{box-sizing:border-box;}
+
+    body{
+      margin:0;
+      min-height:100vh;
+      background:var(--bg);
+      color:var(--fg);
+      font-family:var(--font-sans);
+      overflow-x:hidden;
+      cursor:none; /* hide OS cursor */
+    }
+
+    /* No native cursor anywhere */
+    *, *::before, *::after{ cursor:none !important; }
+
+    /* Fullscreen dynamic background (squares) */
+    #bg-lines{
+      position:fixed;
+      inset:0;
+      width:100vw;
+      height:100vh;
+      z-index:0;
+      pointer-events:none;
+    }
+
+    /* Creature layer: above bg, behind content */
+    #creature-layer{
+      position:fixed;
+      inset:0;
+      z-index:0; /* same stack level as bg; DOM order places it above bg */
+      pointer-events:none;
+    }
+
+    .creature{
+      position:absolute;
+      width:60px;
+      height:60px;
+      image-rendering:pixelated;
+      opacity:0;
+      transition:opacity 1200ms ease;
+      filter: blur(0.2px);
+    }
+
+    /* Dynamic cursor square canvas (topmost) */
+    #grad-square{
+      position:fixed;
+      width:50px;height:50px;
+      top:50%;left:50%;
+      transform:translate(-50%,-50%);
+      image-rendering:pixelated;
+      pointer-events:none;
+      z-index:9999;
+    }
+
+    .frame{
+      max-width:1100px;
+      margin:2.5rem auto 3rem;
+      padding:0 1.5rem;
+      border:1px dashed var(--border);
+      background:rgba(255,255,255,0.92);
+      backdrop-filter:blur(6px);
+      position:relative;
+      z-index:1;
+    }
+
+    header{
+      padding:1.5rem 1.5rem 1rem;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      flex-wrap:wrap;
+      gap:1rem 2rem;
+      align-items:baseline;
+      justify-content:space-between;
+    }
+
+    .site-title{
+      font-family: Cambria, serif;
+      font-size:20px;
+      font-weight:700;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+    }
+    .site-title span{ color:var(--fg); }
+
+    .tagline{
+      font-size:.9rem;
+      color:var(--muted);
+      max-width:25rem;
+    }
+
+    nav{
+      display:flex;
+      gap:1.2rem;
+      font-size:.85rem;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+    }
+
+    nav a{
+      color:var(--muted);
+      text-decoration:none;
+      position:relative;
+    }
+
+    nav a::after{
+      content:"";
+      position:absolute;
+      left:0;
+      bottom:-.12rem;
+      width:0;
+      height:2px;
+      background:var(--accent);
+      transition:width 150ms ease;
+    }
+
+    nav a:hover{color:var(--fg);}
+    nav a:hover::after{width:100%;}
+
+    main{padding:1.5rem;}
+
+    .layout{
+      display:grid;
+      grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr);
+      gap:2rem;
+    }
+    @media(max-width:800px){.layout{grid-template-columns:1fr;}}
+
+    .intro h1{
+      font-size:clamp(1.2rem,2vw,1.8rem);
+      margin:0 0 .75rem;
+    }
+
+    .intro p{
+      margin:0 0 .75rem;
+      color:var(--muted);
+      font-size:.98rem;
+    }
+
+    .meta-list{
+      list-style:none;
+      padding:0;
+      margin:1.2rem 0 0;
+      font-size:.85rem;
+      color:var(--muted);
+    }
+    .meta-list li{margin-bottom:.2rem;}
+
+    .meta-label{
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      font-size:.72rem;
+      color:#888;
+      display:inline-block;
+      margin-right:.5rem;
+    }
+
+    .project-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+      gap:1rem;
+    }
+
+    .project-card{
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:#f5f5f5;
+      padding:.9rem;
+      min-height:140px;
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-end;
+      text-decoration:none;
+      color:inherit;
+    }
+
+    .project-card:hover{
+      border-color:var(--accent);
+      box-shadow:0 0 0 1px rgba(255,79,154,.4);
+    }
+
+    .project-tag{
+      font-size:.7rem;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color:var(--muted);
+      margin-bottom:.35rem;
+    }
+
+    .project-title{font-size:.95rem;font-weight:600;}
+    .project-meta{font-size:.78rem;color:var(--muted);margin-top:.2rem;}
+
+    .listen-block{
+      margin-top:2.5rem;
+      border-top:1px solid var(--border);
+      padding-top:1.25rem;
+      display:grid;
+      gap:1rem;
+      grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);
+      align-items:flex-start;
+    }
+    @media(max-width:800px){.listen-block{grid-template-columns:1fr;}}
+
+    .listen-block h2{
+      font-size:1rem;
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      margin:0 0 .5rem;
+    }
+
+    .listen-block p{
+      margin:0 0 .5rem;
+      font-size:.9rem;
+      color:var(--muted);
+    }
+
+    .player-shell{
+      border-radius:14px;
+      border:1px solid var(--border);
+      padding:.8rem .9rem;
+      background:#f8f8f8;
+      font-size:.85rem;
+    }
+
+    audio{width:100%;margin-top:.55rem;}
+
+    .small-label{
+      font-size:.72rem;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color:#808080;
+      display:block;
+      margin-bottom:.3rem;
+    }
+
+    footer{
+      padding:0 1.5rem 1.5rem;
+      border-top:1px solid var(--border);
+      font-size:.78rem;
+      color:var(--muted);
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:space-between;
+      gap:.75rem;
+    }
+
+    footer a{color:var(--muted);text-decoration:none;}
+    footer a:hover{color:var(--fg);text-decoration:underline;}
+
+    .random-letter{
+      display:inline-block;
+      white-space:pre;
+    }
+
+    /* Keep title readable even when scrambled */
+    .site-title .random-letter{
+      font-family: Cambria, serif !important;
+      font-weight: 700 !important;
+      font-size: 20px !important;
+      letter-spacing: .06em;
+      color: var(--fg);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Background -->
+  <canvas id="bg-lines" aria-hidden="true"></canvas>
+
+  <!-- Creature layer (must be in BODY, not in CSS) -->
+  <div id="creature-layer" aria-hidden="true"></div>
+
+  <!-- Pointer creature -->
+  <canvas id="grad-square" width="50" height="50" aria-hidden="true"></canvas>
+
+  <div class="frame">
+    <header>
+      <div>
+        <div class="site-title"><span>Matteo Traverso</span></div>
+        <div class="tagline">
+          Sound artist / digital synth developer / modular synth player,
+          working with improvisation, sound installations and spatial audio.
+        </div>
+      </div>
+
+      <nav>
+        <a href="#works">Works</a>
+        <a href="#listen">Listen</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </header>
+
+    <main>
+      <div class="layout">
+        <section class="intro" id="about">
+          <h1>exploring boundaries of numb senses</h1>
+
+          <p>I work with acoustic and electronic instruments, dancers and visual artists.</p>
+          <p>I am currently based in Köln, working on impro-sets, performances and sound installations.</p>
+
+          <ul class="meta-list">
+            <li><span class="meta-label">Based in</span>Köln / NRW / Europe</li>
+            <li><span class="meta-label">Practices</span>sound art, improvisation, AV performance, installation</li>
+            <li>
+              <span class="meta-label">Contact</span>
+              <a href="mailto:matteo.traverso0@2gmail.com">matteo.traverso0@2gmail.com</a>
+            </li>
+          </ul>
+        </section>
+
+        <section id="works" aria-label="Selected works">
+          <div class="project-grid">
+            <a class="project-card" href="projects/exoplanet.html">
+              <div class="project-tag">AV performance</div>
+              <div class="project-title">EXOPLANET</div>
+              <div class="project-meta">improvised quintet · planetarium setting</div>
+            </a>
+
+            <a class="project-card" href="projects/probe-the-oracle.html">
+              <div class="project-tag">Violin & algorithm duet</div>
+              <div class="project-title">PROBE THE ORACLE</div>
+              <div class="project-meta">machine listening · concatenative synthesis</div>
+            </a>
+
+            <a class="project-card" href="projects/harsh-coziness.html">
+              <div class="project-tag">Performance</div>
+              <div class="project-title">HARSH COZINESS</div>
+              <div class="project-meta">DIY feedback objects · small speakers</div>
+            </a>
+
+            <a class="project-card" href="projects/installations.html">
+              <div class="project-tag">Installation</div>
+              <div class="project-title">INSTALLATIONS</div>
+              <div class="project-meta">ongoing research in spatial sound</div>
+            </a>
+          </div>
+        </section>
+      </div>
+
+      <section class="listen-block" id="listen">
+        <div>
+          <h2>Listen</h2>
+          <p>
+            A small selection of recordings. For more, visit my
+            <a href="https://matteotraverso.bandcamp.com" target="_blank" rel="noopener">
+              Bandcamp / SoundCloud
+            </a>.
+          </p>
+        </div>
+
+        <div class="player-shell">
+          <span class="small-label">Featured track</span>
+          <div><strong>Track title – from “Exoplanet”</strong></div>
+          <audio controls>
+            <source src="Lame_serenade_organ_model44.1" type="audio/mpeg" />
+            Your browser does not support the audio element.
+          </audio>
+        </div>
+      </section>
+    </main>
+
+    <footer id="contact">
+      <div>© <span id="year"></span> Matteo Traverso</div>
+      <div>
+        <a href="mailto:matteo.traverso02@gmail.com">matteo.traverso02@gmail.com</a> ·
+        <a href="https://instagram.com/yourprofile" target="_blank" rel="noopener">Instagram</a> ·
+        <a href="https://github.com/yourusername" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // Footer year
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+
+  <script>
+    // ===== Pointer creature (your cursor) =====
+    const canvas = document.getElementById("grad-square");
+    const ctx = canvas.getContext("2d");
+
+    const pCols = 10;
+    const pRows = 10;
+    const cellSize = 5;
+    const N = pCols * pRows;
+
+    const baseAlpha = new Float32Array(N);
+    const currentAlpha = new Float32Array(N);
+
+    const intervals = new Float32Array(N);
+    const timers = new Float32Array(N);
+
+    const minFps = 0.01;
+    const maxFps = 8;
+
+    const cx = (pCols - 1) / 2;
+    const cy = (pRows - 1) / 2;
+    const maxDist = Math.sqrt(cx * cx + cy * cy);
+
+    let frozen = false;
+
+    let idx = 0;
+    for (let y = 0; y < pRows; y++) {
+      for (let x = 0; x < pCols; x++) {
+        const dx = x - cx;
+        const dy = y - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        let t = dist / maxDist;
+        if (t > 1) t = 1;
+        baseAlpha[idx] = 1 - t;
+
+        const fps = minFps + Math.random() * (maxFps - minFps);
+        intervals[idx] = 1 / fps;
+        timers[idx] = Math.random() * intervals[idx];
+
+        currentAlpha[idx] = baseAlpha[idx] * Math.random();
+        idx++;
+      }
+    }
+
+    function update(dt) {
+      if (frozen) return;
+
+      let i = 0;
+      for (let y = 0; y < pRows; y++) {
+        for (let x = 0; x < pCols; x++) {
+          timers[i] += dt;
+          if (timers[i] >= intervals[i]) {
+            timers[i] -= intervals[i];
+            currentAlpha[i] = baseAlpha[i] * Math.random();
+          }
+          i++;
+        }
+      }
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      let i = 0;
+      for (let y = 0; y < pRows; y++) {
+        for (let x = 0; x < pCols; x++) {
+          const a = currentAlpha[i];
+          if (a > 0) {
+            ctx.fillStyle = `rgba(0, 0, 0, ${a})`;
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          }
+          i++;
+        }
+      }
+    }
+
+    let lastTime = null;
+    function loop(ts) {
+      if (lastTime === null) lastTime = ts;
+      const dt = (ts - lastTime) / 1000;
+      lastTime = ts;
+      update(dt);
+      render();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    window.addEventListener("mousemove", (e) => {
+      canvas.style.left = e.clientX + "px";
+      canvas.style.top  = e.clientY + "px";
+
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      let node = el;
+      let onLink = false;
+
+      while (node) {
+        if (node.tagName === "A") { onLink = true; break; }
+        node = node.parentElement;
+      }
+
+      frozen = onLink;
+    });
+  </script>
+
+  <script>
+    // ===== Random-font per-letter across the whole site (preserving structure) =====
+    window.addEventListener("DOMContentLoaded", () => {
+      const fonts = [
+        "Courier New, monospace",
+        "OCR A Std, monospace",
+        "Andale Mono, monospace",
+        "Bookman, 'URW Bookman L', serif",
+        "Optima, sans-serif",
+        "Cambria, serif"
+      ];
+
+      const weights = [80, 200, 500];
+      const randomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+      const walker = document.createTreeWalker(
+        document.body,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode(node) {
+            if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+
+            const p = node.parentElement;
+            if (!p) return NodeFilter.FILTER_REJECT;
+
+            const tag = p.tagName;
+            if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT") return NodeFilter.FILTER_REJECT;
+
+            // skip canvases / creature layer text (there shouldn't be)
+            if (p.closest && (p.closest("#grad-square") || p.closest("#bg-lines"))) return NodeFilter.FILTER_REJECT;
+
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        }
+      );
+
+      const textNodes = [];
+      let n;
+      while ((n = walker.nextNode())) textNodes.push(n);
+
+      for (const textNode of textNodes) {
+        const text = textNode.nodeValue;
+        const frag = document.createDocumentFragment();
+
+        for (const ch of text) {
+          const s = document.createElement("span");
+          s.className = "random-letter";
+          s.textContent = ch;
+          s.style.fontFamily = randomItem(fonts);
+          s.style.fontWeight = String(randomItem(weights));
+          frag.appendChild(s);
+        }
+
+        textNode.parentNode.replaceChild(frag, textNode);
+      }
+    });
+  </script>
 
   <script>
     // ===== Dynamic background (non-stretched squares, darker + smooth) =====
@@ -839,5 +1390,9 @@
       });
     });
   </script>
+</body>
+</html>
+
+ 
 </body>
 </html>
