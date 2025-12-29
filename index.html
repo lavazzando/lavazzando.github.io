@@ -254,11 +254,29 @@
       letter-spacing: .06em;
       color: var(--fg);
     }
+    /* Fullscreen dynamic background */
+#bg-lines{
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  z-index:0;
+  pointer-events:none;
+  opacity:1; /* l'opacità vera la gestiamo via globalAlpha nel render */
+}
+
+/* assicurati che il contenuto stia sopra */
+.frame{ position:relative; z-index:1; }
+
+/* il tuo cursore sopra a tutto */
+#grad-square{ z-index:9999; }
+
   </style>
 </head>
 
 <body>
   <canvas id="grad-square" width="50" height="50" aria-hidden="true"></canvas>
+  <canvas id="bg-lines" aria-hidden="true"></canvas>
 
   <div class="frame">
     <header>
@@ -523,5 +541,131 @@
       }
     });
   </script>
+  <script>
+  // ===== Dynamic stretched-line background (slow + smooth) =====
+  const bg = document.getElementById("bg-lines");
+  const bctx = bg.getContext("2d", { alpha: true });
+
+  // "pixel" stirati (quasi linee)
+  const cellW = 2;   // larghezza "pixel"
+  const cellH = 46;  // altezza "pixel" -> linee verticali
+  const blurPx = 10; // blur per render graduale
+
+  // Opacità bassa
+  const baseOpacity = 0.055; // prova 0.03–0.08
+
+  // Pattern update 10x più lento:
+  // qui aggiorniamo il "rumore" ogni ~10 frame, ma renderizziamo sempre
+  const slowFactorFrames = 10;
+
+  // Campo di "intensità" che segue il mouse in modo graduale
+  let mx = window.innerWidth * 0.5, my = window.innerHeight * 0.5;
+  let tx = mx, ty = my;
+
+  function resizeBG(){
+    const dpr = window.devicePixelRatio || 1;
+    bg.width = Math.floor(window.innerWidth * dpr);
+    bg.height = Math.floor(window.innerHeight * dpr);
+    bg.style.width = window.innerWidth + "px";
+    bg.style.height = window.innerHeight + "px";
+    bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener("resize", resizeBG);
+  resizeBG();
+
+  window.addEventListener("mousemove", (e) => {
+    tx = e.clientX;
+    ty = e.clientY;
+  });
+
+  // Rumore lento ma morbido: valori che cambiano lentamente e interpolano
+  let noiseA = [];
+  let noiseB = [];
+  let tNoise = 0;
+
+  function rand01(){ return Math.random(); }
+
+  function buildNoise(cols, rows){
+    const arr = new Float32Array(cols * rows);
+    for(let i=0;i<arr.length;i++) arr[i] = rand01();
+    return arr;
+  }
+
+  function ensureNoiseSize(){
+    const cols = Math.ceil(window.innerWidth / cellW);
+    const rows = Math.ceil(window.innerHeight / cellH);
+    const needed = cols * rows;
+    if (noiseA.length !== needed){
+      noiseA = buildNoise(cols, rows);
+      noiseB = buildNoise(cols, rows);
+      tNoise = 0;
+    }
+    return { cols, rows };
+  }
+
+  let frameCount = 0;
+
+  function lerp(a,b,t){ return a + (b-a)*t; }
+
+  function renderBG(){
+    const { cols, rows } = ensureNoiseSize();
+
+    // easing del mouse (graduale)
+    mx = lerp(mx, tx, 0.08);
+    my = lerp(my, ty, 0.08);
+
+    // aggiorna lentamente il target noise ogni slowFactorFrames
+    frameCount++;
+    if (frameCount % slowFactorFrames === 0) {
+      noiseA = noiseB;
+      noiseB = buildNoise(cols, rows);
+      tNoise = 0;
+    }
+
+    // interpolazione graduale tra noiseA e noiseB
+    tNoise = Math.min(1, tNoise + 0.015); // velocità transizione (più basso = più lento)
+
+    // pulizia + blur per “completamente graduale”
+    bctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    bctx.save();
+    bctx.filter = `blur(${blurPx}px)`;
+
+    // gradiente “campo” centrato sul mouse (morbido)
+    const g = bctx.createRadialGradient(mx, my, 0, mx, my, Math.max(window.innerWidth, window.innerHeight) * 0.55);
+    g.addColorStop(0, `rgba(0,0,0,${baseOpacity})`);
+    g.addColorStop(1, `rgba(0,0,0,0)`);
+    bctx.fillStyle = g;
+    bctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+
+    // ora disegniamo le linee “pixel” stirate con alpha bassissima
+    // usando il gradiente sopra come “base” e aggiungendo variazioni lente
+    bctx.globalCompositeOperation = "multiply";
+
+    let i = 0;
+    for (let y = 0; y < rows; y++){
+      const py = y * cellH;
+      for (let x = 0; x < cols; x++){
+        const px = x * cellW;
+
+        // rumore interpolato (0..1)
+        const n = lerp(noiseA[i], noiseB[i], tNoise);
+
+        // alpha super soft (quadratica per evitare grana aggressiva)
+        const a = (n * n) * 0.12; // intensità: prova 0.06–0.18
+
+        bctx.fillStyle = `rgba(0,0,0,${a})`;
+        bctx.fillRect(px, py, cellW, cellH);
+
+        i++;
+      }
+    }
+
+    bctx.restore();
+    requestAnimationFrame(renderBG);
+  }
+
+  requestAnimationFrame(renderBG);
+</script>
+
 </body>
 </html>
