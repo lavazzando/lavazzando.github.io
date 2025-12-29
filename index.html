@@ -119,10 +119,7 @@
     }
     @media(max-width:800px){.layout{grid-template-columns:1fr;}}
 
-    .intro h1{
-      font-size:clamp(2.2rem,4vw,2.8rem);
-      margin:0 0 .75rem;
-    }
+   .intro h1{font-size:clamp(2.2rem,4vw,2.8rem);margin:0 0 .75rem;}
 
     .intro p{
       margin:0 0 .75rem;
@@ -247,12 +244,15 @@
     }
 
     /* Force the site-title letters specifically (even though they’re scrambled) */
-    .site-title .random-letter{
-      font-family: Cambria, serif !important;
-      font-weight: 700 !important;
-      font-size: 20px !important;
-      letter-spacing: .06em;
-      color: var(--fg);
+   .site-title{
+  font-family: var(--font-mono);
+  font-size:.95rem;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  font-weight: normal; /* <-- add this (prevents forced bold look) */
+}
+intro
+    
     }
   </style>
 </head>
