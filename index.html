@@ -4,161 +4,251 @@
   <meta charset="UTF-8" />
   <title>Matteo Traverso – Sound Artist</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <style>
-    :root {
+    :root{
       --bg:#fff;--fg:#111;--muted:#555;--accent:#ff4f9a;--border:#ccc;
       --font-sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
       --font-mono:"SF Mono",ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
-      a, a:hover, a:focus, a:active {cursor: default;
-}
-
     }
+
     *{box-sizing:border-box;}
+
     body{
       margin:0;
       min-height:100vh;
-      background:#fff;
+      background:var(--bg);
       color:var(--fg);
       font-family:var(--font-sans);
       overflow-x:hidden;
-      cursor:none; /* hide mouse cursor */
+      cursor:none; /* hide OS cursor */
     }
 
-    /* Dynamic cursor square: 50x50 canvas, centered on pointer */
+    /* Ensure NO native cursor ever appears (links/buttons/etc.) */
+    *,
+    *::before,
+    *::after{
+      cursor:none !important;
+    }
+
+    /* Dynamic cursor square canvas */
     #grad-square{
       position:fixed;
-      width:50px;
-      height:50px;
-      top:50%;
-      left:50%;
+      width:50px;height:50px;
+      top:50%;left:50%;
       transform:translate(-50%,-50%);
       image-rendering:pixelated;
-      pointer-events:none; /* do not block clicks */
-      z-index:9999;        /* always on top of everything */
+      pointer-events:none;
+      z-index:9999;
     }
 
     .frame{
-      max-width:1100px;margin:2.5rem auto 3rem;padding:0 1.5rem;
-      border:1px solid var(--border);border-radius:18px;
-      background:rgba(255,255,255,0.92);backdrop-filter:blur(6px);
-      position:relative;z-index:1;
+      max-width:1100px;
+      margin:2.5rem auto 3rem;
+      padding:0 1.5rem;
+      border:1px solid var(--border);
+      border-radius:18px;
+      background:rgba(255,255,255,0.92);
+      backdrop-filter:blur(6px);
+      position:relative;
+      z-index:1;
     }
+
     header{
-      padding:1.5rem 1.5rem 1rem;border-bottom:1px solid var(--border);
-      display:flex;flex-wrap:wrap;gap:1rem 2rem;align-items:baseline;
+      padding:1.5rem 1.5rem 1rem;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      flex-wrap:wrap;
+      gap:1rem 2rem;
+      align-items:baseline;
       justify-content:space-between;
     }
+
     .site-title{
-      font-family:var(--font-mono);font-size:.95rem;
-      letter-spacing:.12em;text-transform:uppercase;
+      font-family:var(--font-mono);
+      font-size:.95rem;
+      letter-spacing:.12em;
+      text-transform:uppercase;
     }
+
     .site-title span{
       background:linear-gradient(90deg,#ffb347,#ff4f9a,#6ea8ff);
-      -webkit-background-clip:text;background-clip:text;color:transparent;
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
     }
-    .tagline{font-size:.9rem;color:var(--muted);max-width:25rem;}
+
+    .tagline{
+      font-size:.9rem;
+      color:var(--muted);
+      max-width:25rem;
+    }
+
     nav{
-      display:flex;gap:1.2rem;font-size:.85rem;
-      text-transform:uppercase;letter-spacing:.12em;
+      display:flex;
+      gap:1.2rem;
+      font-size:.85rem;
+      text-transform:uppercase;
+      letter-spacing:.12em;
     }
+
     nav a{
-      color:var(--muted);text-decoration:none;position:relative;
+      color:var(--muted);
+      text-decoration:none;
+      position:relative;
     }
+
     nav a::after{
-      content:"";position:absolute;left:0;bottom:-.1rem;width:0;height:1px;
-      background:var(--accent);transition:width 150ms ease;
+      content:"";
+      position:absolute;
+      left:0;
+      bottom:-.1rem;
+      width:0;
+      height:1px;
+      background:var(--accent);
+      transition:width 150ms ease;
     }
+
     nav a:hover{color:var(--fg);}
-     a,
-  a:hover,
-  a:focus,
-  a:active {
-    cursor: none;
-  }
     nav a:hover::after{width:100%;}
- 
+
     main{padding:1.5rem;}
+
     .layout{
-      display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr);
+      display:grid;
+      grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr);
       gap:2rem;
     }
     @media(max-width:800px){.layout{grid-template-columns:1fr;}}
 
-    .intro h1{font-size:clamp(2.2rem,4vw,2.8rem);margin:0 0 .75rem;}
-    .intro p{margin:0 0 .75rem;color:var(--muted);font-size:.98rem;}
+    .intro h1{
+      font-size:clamp(2.2rem,4vw,2.8rem);
+      margin:0 0 .75rem;
+    }
+
+    .intro p{
+      margin:0 0 .75rem;
+      color:var(--muted);
+      font-size:.98rem;
+    }
 
     .meta-list{
-      list-style:none;padding:0;margin:1.2rem 0 0;font-size:.85rem;
+      list-style:none;
+      padding:0;
+      margin:1.2rem 0 0;
+      font-size:.85rem;
       color:var(--muted);
     }
     .meta-list li{margin-bottom:.2rem;}
+
     .meta-label{
-      text-transform:uppercase;letter-spacing:.16em;font-size:.72rem;
-      color:#888;display:inline-block;margin-right:.5rem;
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      font-size:.72rem;
+      color:#888;
+      display:inline-block;
+      margin-right:.5rem;
     }
 
     .project-grid{
-      display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
       gap:1rem;
     }
+
     .project-card{
-      border-radius:14px;border:1px solid var(--border);background:#f5f5f5;
-      padding:.9rem;min-height:140px;display:flex;flex-direction:column;
-      justify-content:flex-end;cursor:none;text-decoration:none;color:inherit;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:#f5f5f5;
+      padding:.9rem;
+      min-height:140px;
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-end;
+      text-decoration:none;
+      color:inherit;
     }
+
     .project-card:hover{
-      border-color:var(--accent);box-shadow:0 0 0 1px rgba(255,79,154,.4);
+      border-color:var(--accent);
+      box-shadow:0 0 0 1px rgba(255,79,154,.4);
     }
+
     .project-tag{
-      font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;
-      color:var(--muted);margin-bottom:.35rem;
+      font-size:.7rem;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color:var(--muted);
+      margin-bottom:.35rem;
     }
+
     .project-title{font-size:.95rem;font-weight:600;}
     .project-meta{font-size:.78rem;color:var(--muted);margin-top:.2rem;}
 
     .listen-block{
-      margin-top:2.5rem;border-top:1px solid var(--border);padding-top:1.25rem;
-      display:grid;gap:1rem;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);
+      margin-top:2.5rem;
+      border-top:1px solid var(--border);
+      padding-top:1.25rem;
+      display:grid;
+      gap:1rem;
+      grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);
       align-items:flex-start;
     }
     @media(max-width:800px){.listen-block{grid-template-columns:1fr;}}
 
     .listen-block h2{
-      font-size:1rem;text-transform:uppercase;letter-spacing:.16em;
+      font-size:1rem;
+      text-transform:uppercase;
+      letter-spacing:.16em;
       margin:0 0 .5rem;
     }
-    .listen-block p{margin:0 0 .5rem;font-size:.9rem;color:var(--muted);}
+
+    .listen-block p{
+      margin:0 0 .5rem;
+      font-size:.9rem;
+      color:var(--muted);
+    }
 
     .player-shell{
-      border-radius:14px;border:1px solid var(--border);padding:.8rem .9rem;
-      background:#f8f8f8;font-size:.85rem;
-    }
-    audio{width:100%;margin-top:.55rem;}
-    .small-label{
-      font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;
-      color:#808080;display:block;margin-bottom:.3rem;
+      border-radius:14px;
+      border:1px solid var(--border);
+      padding:.8rem .9rem;
+      background:#f8f8f8;
+      font-size:.85rem;
     }
 
-    .random-letter {
-  display: inline-block;
-  white-space: pre;
-}
+    audio{width:100%;margin-top:.55rem;}
+
+    .small-label{
+      font-size:.72rem;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color:#808080;
+      display:block;
+      margin-bottom:.3rem;
+    }
+
+    /* Wrapper spans for per-letter font randomization */
+    .random-letter{
+      display:inline-block;
+      white-space:pre;
+    }
 
     footer{
-      padding:0 1.5rem 1.5rem;border-top:1px solid var(--border);
-      font-size:.78rem;color:var(--muted);display:flex;flex-wrap:wrap;
-      justify-content:space-between;gap:.75rem;
+      padding:0 1.5rem 1.5rem;
+      border-top:1px solid var(--border);
+      font-size:.78rem;
+      color:var(--muted);
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:space-between;
+      gap:.75rem;
     }
+
     footer a{color:var(--muted);text-decoration:none;}
     footer a:hover{color:var(--fg);text-decoration:underline;}
-    *,
-*::before,
-*::after {
-  cursor: none !important;
-}
-
-
-
+  </style>
+</head>
 
 <body>
   <!-- Dynamic cursor canvas -->
@@ -173,6 +263,7 @@
           working with improvisation, sound installations and spatial audio.
         </div>
       </div>
+
       <nav>
         <a href="#works">Works</a>
         <a href="#listen">Listen</a>
@@ -185,16 +276,15 @@
       <div class="layout">
         <section class="intro" id="about">
           <h1>Intersectional exploration of different scales of relations and interactions.</h1>
-          <p>
-            I work with acoustic and electronic instruments, dancers and visual artists.
-          </p>
-          <p>
-            I am currently based in Köln, working on impro-sets, performances and sound installations.
-          </p>
+
+          <p>I work with acoustic and electronic instruments, dancers and visual artists.</p>
+          <p>I am currently based in Köln, working on impro-sets, performances and sound installations.</p>
+
           <ul class="meta-list">
             <li><span class="meta-label">Based in</span>Köln / NRW / Europe</li>
             <li><span class="meta-label">Practices</span>sound art, improvisation, AV performance, installation</li>
-            <li><span class="meta-label">Contact</span>
+            <li>
+              <span class="meta-label">Contact</span>
               <a href="mailto:matteo.traverso0@2gmail.com">matteo.traverso0@2gmail.com</a>
             </li>
           </ul>
@@ -207,16 +297,19 @@
               <div class="project-title">EXOPLANET</div>
               <div class="project-meta">improvised quintet · planetarium setting</div>
             </a>
+
             <a class="project-card" href="projects/probe-the-oracle.html">
               <div class="project-tag">Violin & algorithm duet</div>
               <div class="project-title">PROBE THE ORACLE</div>
               <div class="project-meta">machine listening · concatenative synthesis</div>
             </a>
+
             <a class="project-card" href="projects/harsh-coziness.html">
               <div class="project-tag">Performance</div>
               <div class="project-title">HARSH COZINESS</div>
               <div class="project-meta">DIY feedback objects · small speakers</div>
             </a>
+
             <a class="project-card" href="projects/installations.html">
               <div class="project-tag">Installation</div>
               <div class="project-title">INSTALLATIONS</div>
@@ -236,6 +329,7 @@
             </a>.
           </p>
         </div>
+
         <div class="player-shell">
           <span class="small-label">Featured track</span>
           <div><strong>Track title – from “Exoplanet”</strong></div>
@@ -275,8 +369,8 @@
     const intervals = new Float32Array(N); // seconds between updates
     const timers = new Float32Array(N);
 
-    // Random refresh rate 10–40 fps
-    const minFps = .01;
+    // Random refresh rate per pixel
+    const minFps = 0.01;
     const maxFps = 8;
 
     // Center in grid coordinates
@@ -294,37 +388,30 @@
         const dx = x - cx;
         const dy = y - cy;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        let t = dist / maxDist;       // 0 center → 1 border
+        let t = dist / maxDist; // 0 center → 1 border
         if (t > 1) t = 1;
-        baseAlpha[idx] = 1 - t;       // 1 center → 0 border
+        baseAlpha[idx] = 1 - t; // 1 center → 0 border
 
-        // Random fps 10–40 per pixel
         const fps = minFps + Math.random() * (maxFps - minFps);
         intervals[idx] = 1 / fps;
         timers[idx] = Math.random() * intervals[idx]; // random phase
 
-        // Initial alpha with random multiplier 0–1
         currentAlpha[idx] = baseAlpha[idx] * Math.random();
-
         idx++;
       }
     }
 
     function update(dt) {
-      if (frozen) return; // do not change pattern while over a link
+      if (frozen) return;
 
       let i = 0;
       for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
           timers[i] += dt;
-
-          // If it's time, update this pixel's transparency
           if (timers[i] >= intervals[i]) {
             timers[i] -= intervals[i];
-            const randMul = Math.random(); // 0..1
-            currentAlpha[i] = baseAlpha[i] * randMul;
+            currentAlpha[i] = baseAlpha[i] * Math.random();
           }
-
           i++;
         }
       }
@@ -336,7 +423,7 @@
       let i = 0;
       for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
-          const a = currentAlpha[i]; // 0..1
+          const a = currentAlpha[i];
           if (a > 0) {
             ctx.fillStyle = `rgba(0, 0, 0, ${a})`;
             ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
@@ -346,11 +433,10 @@
       }
     }
 
-    // Animation loop with per-pixel timers
     let lastTime = null;
     function loop(timestamp) {
       if (lastTime === null) lastTime = timestamp;
-      const dt = (timestamp - lastTime) / 1000; // seconds
+      const dt = (timestamp - lastTime) / 1000;
       lastTime = timestamp;
 
       update(dt);
@@ -358,70 +444,68 @@
 
       requestAnimationFrame(loop);
     }
-
     requestAnimationFrame(loop);
 
-    // Keep the canvas centered on the mouse + detect links to freeze
     window.addEventListener("mousemove", (e) => {
       canvas.style.left = e.clientX + "px";
       canvas.style.top  = e.clientY + "px";
 
-      // Hit-test the element under the pointer (canvas has pointer-events:none)
       const el = document.elementFromPoint(e.clientX, e.clientY);
       let node = el;
       let onLink = false;
 
       while (node) {
-        if (node.tagName === "A") {
-          onLink = true;
-          break;
-        }
+        if (node.tagName === "A") { onLink = true; break; }
         node = node.parentElement;
       }
-
       frozen = onLink;
     });
 
-    // Footer year
     document.getElementById("year").textContent = new Date().getFullYear();
   </script>
-      </style>
-</head>
-<script>
-const fonts = [
-  "Jazz LET, fantasy",
-  "Courier New, monospace",
-  "Chalkduster, fantasy",
-  "OCR A Std, monospace",
-  "Bookman, 'URW Bookman L', serif",
-  "Optima, sans-serif"
-];
 
-const weights = [80, 200, 500];
+  <script>
+    // ===== Per-letter random fonts + weights on each refresh =====
+    window.addEventListener("DOMContentLoaded", () => {
+      const fonts = [
+        "Jazz LET, fantasy",
+        "Courier New, monospace",
+        "Chalkduster, fantasy",
+        "OCR A Std, monospace",
+        "Bookman, 'URW Bookman L', serif",
+        "Optima, sans-serif"
+      ];
 
-// Elements you want affected
-const targets = document.querySelectorAll(
-  "h1, h2, h3, p, a, li, span"
-);
+      const weights = [80, 200, 500];
 
-function randomItem(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
+      function randomItem(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+      }
 
-targets.forEach(el => {
-  const text = el.textContent;
-  el.textContent = ""; // clear original
+      function scrambleElement(el) {
+        // Only scramble elements that contain pure text (no nested markup),
+        // so we don't destroy card structure / links.
+        if (el.children.length > 0) return;
 
-  [...text].forEach(char => {
-    const span = document.createElement("span");
-    span.className = "random-letter";
-    span.textContent = char;
-    span.style.fontFamily = randomItem(fonts);
-    span.style.fontWeight = randomItem(weights);
-    el.appendChild(span);
-  });
-});
-</script>
+        const text = el.textContent;
+        if (!text || !text.trim()) return;
+
+        el.textContent = "";
+        for (const ch of text) {
+          const s = document.createElement("span");
+          s.className = "random-letter";
+          s.textContent = ch;
+          s.style.fontFamily = randomItem(fonts);
+          s.style.fontWeight = String(randomItem(weights));
+          el.appendChild(s);
+        }
+      }
+
+      // Scramble “leaf” text elements + selected card text fields
+      document
+        .querySelectorAll("h1, h2, h3, p, li, .project-tag, .project-title, .project-meta, .tagline")
+        .forEach(scrambleElement);
+    });
+  </script>
 </body>
 </html>
-
