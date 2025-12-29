@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Matteo TTraverso – Sound Artist</title>
+  <title>Matteo Traverso – Sound Artist</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
@@ -21,15 +21,11 @@
       color:var(--fg);
       font-family:var(--font-sans);
       overflow-x:hidden;
-      cursor:none; /* hide OS cursor */
+      cursor:none;
     }
 
-    /* Ensure NO native cursor ever appears (links/buttons/etc.) */
-    *,
-    *::before,
-    *::after{
-      cursor:none !important;
-    }
+    /* No native cursor anywhere */
+    *, *::before, *::after{ cursor:none !important; }
 
     /* Dynamic cursor square canvas */
     #grad-square{
@@ -64,18 +60,19 @@
       justify-content:space-between;
     }
 
+    /* Site title: Cambria-ish, bold, size ~20 */
     .site-title{
-      font-family:var(--font-mono);
-      font-size:.95rem;
-      letter-spacing:.12em;
+      font-family: Cambria, serif;
+      font-size:20px;
+      font-weight:700;
+      letter-spacing:.06em;
       text-transform:uppercase;
     }
-
     .site-title span{
-      background:linear-gradient(90deg,#ffb347,#ff4f9a,#6ea8ff);
-      -webkit-background-clip:text;
-      background-clip:text;
-      color:transparent;
+      color:var(--fg);
+      background:none;
+      -webkit-background-clip:initial;
+      background-clip:initial;
     }
 
     .tagline{
@@ -98,13 +95,14 @@
       position:relative;
     }
 
+    /* Thicker underline, same accent color */
     nav a::after{
       content:"";
       position:absolute;
       left:0;
-      bottom:-.1rem;
+      bottom:-.12rem;
       width:0;
-      height:1px;
+      height:2px;              /* <-- thicker */
       background:var(--accent);
       transition:width 150ms ease;
     }
@@ -228,12 +226,6 @@
       margin-bottom:.3rem;
     }
 
-    /* Wrapper spans for per-letter font randomization */
-    .random-letter{
-      display:inline-block;
-      white-space:pre;
-    }
-
     footer{
       padding:0 1.5rem 1.5rem;
       border-top:1px solid var(--border);
@@ -247,11 +239,25 @@
 
     footer a{color:var(--muted);text-decoration:none;}
     footer a:hover{color:var(--fg);text-decoration:underline;}
+
+    /* Wrapper spans for per-letter font randomization */
+    .random-letter{
+      display:inline-block;
+      white-space:pre;
+    }
+
+    /* Force the site-title letters specifically (even though they’re scrambled) */
+    .site-title .random-letter{
+      font-family: Cambria, serif !important;
+      font-weight: 700 !important;
+      font-size: 20px !important;
+      letter-spacing: .06em;
+      color: var(--fg);
+    }
   </style>
 </head>
 
 <body>
-  <!-- Dynamic cursor canvas -->
   <canvas id="grad-square" width="50" height="50" aria-hidden="true"></canvas>
 
   <div class="frame">
@@ -358,43 +364,37 @@
 
     const cols = 10;
     const rows = 10;
-    const cellSize = 5; // 10 * 5 = 50 px
+    const cellSize = 5;
     const N = cols * rows;
 
-    // Radial base alpha (center = 1, border = 0)
     const baseAlpha = new Float32Array(N);
     const currentAlpha = new Float32Array(N);
 
-    // Per-pixel timing
-    const intervals = new Float32Array(N); // seconds between updates
+    const intervals = new Float32Array(N);
     const timers = new Float32Array(N);
 
-    // Random refresh rate per pixel
     const minFps = 0.01;
     const maxFps = 8;
 
-    // Center in grid coordinates
     const cx = (cols - 1) / 2;
     const cy = (rows - 1) / 2;
     const maxDist = Math.sqrt(cx * cx + cy * cy);
 
-    // Freeze flag (when over a link)
     let frozen = false;
 
-    // Initialize base radial alpha and timing
     let idx = 0;
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
         const dx = x - cx;
         const dy = y - cy;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        let t = dist / maxDist; // 0 center → 1 border
+        let t = dist / maxDist;
         if (t > 1) t = 1;
-        baseAlpha[idx] = 1 - t; // 1 center → 0 border
+        baseAlpha[idx] = 1 - t;
 
         const fps = minFps + Math.random() * (maxFps - minFps);
         intervals[idx] = 1 / fps;
-        timers[idx] = Math.random() * intervals[idx]; // random phase
+        timers[idx] = Math.random() * intervals[idx];
 
         currentAlpha[idx] = baseAlpha[idx] * Math.random();
         idx++;
@@ -434,14 +434,12 @@
     }
 
     let lastTime = null;
-    function loop(timestamp) {
-      if (lastTime === null) lastTime = timestamp;
-      const dt = (timestamp - lastTime) / 1000;
-      lastTime = timestamp;
-
+    function loop(ts) {
+      if (lastTime === null) lastTime = ts;
+      const dt = (ts - lastTime) / 1000;
+      lastTime = ts;
       update(dt);
       render();
-
       requestAnimationFrame(loop);
     }
     requestAnimationFrame(loop);
@@ -465,47 +463,47 @@
   </script>
 
   <script>
-    // ===== Per-letter random fonts + weights on each refresh =====
+    // ===== Every-letter scramble across the whole site (preserving structure) =====
     window.addEventListener("DOMContentLoaded", () => {
       const fonts = [
-        "Jazz LET, fantasy",
         "Courier New, monospace",
-        "Chalkduster, fantasy",
         "OCR A Std, monospace",
+        "Andale Mono, monospace",
         "Bookman, 'URW Bookman L', serif",
-        "Optima, sans-serif"
+        "Optima, sans-serif",
+        "Cambria, serif"
       ];
 
       const weights = [80, 200, 500];
 
-      function randomItem(arr) {
-        return arr[Math.floor(Math.random() * arr.length)];
-      }
+      const randomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-      function scrambleElement(el) {
-        // Only scramble elements that contain pure text (no nested markup),
-        // so we don't destroy card structure / links.
-        if (el.children.length > 0) return;
+      // TreeWalker over *text nodes* so we scramble EVERYTHING without deleting markup
+      const walker = document.createTreeWalker(
+        document.body,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode(node) {
+            // skip empty/whitespace-only text
+            if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
 
-        const text = el.textContent;
-        if (!text || !text.trim()) return;
+            // skip script/style/noscript
+            const p = node.parentElement;
+            if (!p) return NodeFilter.FILTER_REJECT;
+            const tag = p.tagName;
+            if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT") return NodeFilter.FILTER_REJECT;
 
-        el.textContent = "";
-        for (const ch of text) {
-          const s = document.createElement("span");
-          s.className = "random-letter";
-          s.textContent = ch;
-          s.style.fontFamily = randomItem(fonts);
-          s.style.fontWeight = String(randomItem(weights));
-          el.appendChild(s);
+            // skip the canvas cursor
+            if (p.closest && p.closest("#grad-square")) return NodeFilter.FILTER_REJECT;
+
+            return NodeFilter.FILTER_ACCEPT;
+          }
         }
-      }
+      );
 
-      // Scramble “leaf” text elements + selected card text fields
-      document
-        .querySelectorAll("h1, h2, h3, p, li, .project-tag, .project-title, .project-meta, .tagline")
-        .forEach(scrambleElement);
-    });
-  </script>
-</body>
-</html>
+      const textNodes = [];
+      let n;
+      while ((n = walker.nextNode())) textNodes.push(n);
+
+      for (const textNode of textNodes) {
+        const text = te
