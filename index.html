@@ -204,13 +204,22 @@
       filter:none;
     }
 
-    .icon-caption{
-      font-size:.78rem;
-      letter-spacing:.12em;
-      text-transform:uppercase;
-      color:var(--muted);
-      text-align:center;
-      line-height:1.25;
+   .icon-wrapper {
+  display: flex;
+  flex-direction: column; /* Mette gli elementi uno sotto l'altro */
+  align-items: center;    /* Centra tutto orizzontalmente */
+  gap: 10px;              /* Crea spazio tra il box e il testo */
+}
+
+.icon-caption {
+  font-size: .78rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.25;
+  /* Non serve altro, Flexbox gestisce la posizione */
+}
     }
 
     footer{
@@ -281,12 +290,12 @@
               <!-- Put these PNG files next to index.html (or adjust paths) -->
               <a class="icon-card" href="#" aria-label="Acousmatic & multichannel">
                 <img src="audio/acousmatic-1024.png" alt="" />
-                <div class="icon-caption">acousmatic &amp; multichannel</div>
+                <div class="icon-caption">acousmatic & multichannel</div>
               </a>
 
               <a class="icon-card" href="#" aria-label="Installations & performances">
                 <img src="audio/insta-perf-1024.png" alt="" />
-                <div class="icon-caption">installations &amp; performances</div>
+                <div class="icon-caption">installations & performances</div>
               </a>
 
               <a class="icon-card" href="#" aria-label="Records">
