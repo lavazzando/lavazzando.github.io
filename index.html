@@ -27,7 +27,7 @@
 
     *, *::before, *::after{ cursor:none !important; }
 
-    /* ===== Layers ===== */
+    /* ===== Layers per Script ===== */
     #bg-lines{
       position:fixed;
       inset:0;
@@ -42,17 +42,6 @@
       inset:0;
       z-index:1;
       pointer-events:none;
-    }
-
-    .frame{
-      max-width:1100px;
-      margin:2.5rem auto 3rem;
-      padding:0 1.5rem;
-      border:1px dashed var(--border);
-      background:rgba(255,255,255,0.92);
-      backdrop-filter:blur(6px);
-      position:relative;
-      z-index:2;
     }
 
     #grad-square{
@@ -73,6 +62,18 @@
       opacity:0;
       transition:none;
       filter:none;
+    }
+
+    /* ===== Layout Content ===== */
+    .frame{
+      max-width:1100px;
+      margin:2.5rem auto 3rem;
+      padding:0 1.5rem;
+      border:1px dashed var(--border);
+      background:rgba(255,255,255,0.92);
+      backdrop-filter:blur(6px);
+      position:relative;
+      z-index:2;
     }
 
     header{
@@ -141,69 +142,59 @@
       font-size:.98rem;
     }
 
-    /* ===== Icon Grid Section ===== */
+    /* ===== Icon Card Design ===== */
     .icon-grid {
       display: flex;
-      align-items: flex-end; /* Allinea i box sul fondo della sezione */
+      align-items: flex-end;
       justify-content: center;
-      min-height: 300px;
-      padding-bottom: 2rem;
+      min-height: 280px;
     }
 
     .icon-row {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 2.5rem; /* Spazio orizzontale tra i box */
+      gap: 2rem;
       width: 100%;
     }
 
     .icon-card {
       position: relative;
-      width: 160px;
+      width: 170px;
       height: 110px;
       background: #fff;
       border: 1px solid var(--border);
-      border-radius: 0; /* Rettangolare */
       display: flex;
       align-items: center;
       justify-content: center;
       text-decoration: none;
-      transition: all 180ms ease;
-      margin-bottom: 50px; /* Spazio fondamentale per la didascalia esterna */
+      transition: all 140ms ease;
+      margin-bottom: 50px; /* Spazio per la didascalia esterna */
     }
 
     .icon-card:hover {
       border-color: var(--purple);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
 
     .icon-card img {
-      width: 42px;
-      height: 42px;
+      width: 48px;
+      height: 48px;
       object-fit: contain;
-      filter: grayscale(1); /* Effetto opzionale per stile minimal */
-      transition: filter 180ms ease;
-    }
-
-    .icon-card:hover img {
-      filter: grayscale(0);
     }
 
     .icon-caption {
       position: absolute;
-      top: 100%; /* Posizionata fuori, sotto il bordo inferiore */
+      top: 100%;
       left: 0;
       right: 0;
-      padding-top: 15px;
-      
+      padding-top: 12px;
       font-size: .68rem;
       letter-spacing: .12em;
       text-transform: uppercase;
       color: var(--muted);
       text-align: center;
-      line-height: 1.3;
+      line-height: 1.25;
       pointer-events: none;
     }
 
@@ -222,12 +213,6 @@
     footer a:hover{ color:var(--fg); text-decoration:underline; }
 
     .random-letter{ display:inline-block; white-space:pre; }
-    .site-title .random-letter{
-      font-family: Cambria, serif !important;
-      font-weight: 700 !important;
-      font-size: 20px !important;
-      color: var(--fg);
-    }
   </style>
 </head>
 
@@ -253,7 +238,6 @@
       <div class="layout">
         <section class="intro" id="about">
           <h1>exploring boundaries of numb senses</h1>
-          <p>Sound research through electronic abstraction and physical space.</p>
         </section>
 
         <section id="works" aria-label="Selected works">
@@ -261,14 +245,12 @@
             <div class="icon-row">
               <a class="icon-card" href="#">
                 <img src="audio/acousmatic-1024.png" alt="" />
-                <div class="icon-caption">acousmatic &<br>multichannel</div>
+                <div class="icon-caption">acousmatic & multichannel</div>
               </a>
-
               <a class="icon-card" href="#">
                 <img src="audio/insta-perf-1024.png" alt="" />
-                <div class="icon-caption">installations &<br>performances</div>
+                <div class="icon-caption">installations & performances</div>
               </a>
-
               <a class="icon-card" href="#">
                 <img src="audio/records-1024.png" alt="" />
                 <div class="icon-caption">records</div>
@@ -290,12 +272,93 @@
   </div>
 
   <script>
+    // 1. Variabile globale di stato
+    let frozen = false;
     document.getElementById("year").textContent = new Date().getFullYear();
-    
-    // Il resto dei tuoi script (Pointer, Random Letters, Background Noise, Creatures) 
-    // deve rimanere qui sotto per funzionare...
-    // [Script Pointer e Background rimossi per brevità, ma mantienili nel tuo file originale]
-  </script>
-  
-  </body>
-</html>
+
+    // 2. POINTER SCRIPT
+    const canvas = document.getElementById("grad-square");
+    const ctx = canvas.getContext("2d");
+    const pCols = 10, pRows = 10, pCell = 5, pN = pCols * pRows;
+    const baseAlpha = new Float32Array(pN), currentAlpha = new Float32Array(pN);
+    const intervals = new Float32Array(pN), timers = new Float32Array(pN);
+    const minFps = 0.01, maxFps = 8;
+    const pcx = (pCols - 1) / 2, pcy = (pRows - 1) / 2, pMaxDist = Math.sqrt(pcx*pcx + pcy*pcy);
+
+    for (let i=0; i<pN; i++){
+      const x = i % pCols, y = Math.floor(i / pCols);
+      const dx = x - pcx, dy = y - pcy;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      baseAlpha[i] = 1 - Math.min(1, dist / pMaxDist);
+      intervals[i] = 1 / (minFps + Math.random() * (maxFps - minFps));
+      timers[i] = Math.random() * intervals[i];
+      currentAlpha[i] = baseAlpha[i] * Math.random();
+    }
+
+    function pointerLoop(ts){
+      static dt = 0, last = ts;
+      dt = (ts - last) / 1000; last = ts;
+      if (!frozen) {
+        for (let i=0; i<pN; i++){
+          timers[i] += dt;
+          if (timers[i] >= intervals[i]){
+            timers[i] -= intervals[i];
+            currentAlpha[i] = baseAlpha[i] * Math.random();
+          }
+        }
+      }
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      for (let i=0; i<pN; i++){
+        if (currentAlpha[i] > 0){
+          ctx.fillStyle = `rgba(0,0,0,${currentAlpha[i]})`;
+          ctx.fillRect((i%pCols)*pCell, Math.floor(i/pCols)*pCell, pCell, pCell);
+        }
+      }
+      requestAnimationFrame(pointerLoop);
+    }
+    requestAnimationFrame(pointerLoop);
+
+    window.addEventListener("mousemove", (e) => {
+      canvas.style.left = e.clientX + "px";
+      canvas.style.top  = e.clientY + "px";
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      frozen = !!(el && el.closest("a"));
+    });
+
+    // 3. BACKGROUND LINES SCRIPT
+    const bg = document.getElementById("bg-lines");
+    const bctx = bg.getContext("2d");
+    let mx = 0, my = 0, tx = 0, ty = 0;
+    function resizeBG(){
+      bg.width = window.innerWidth; bg.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resizeBG); resizeBG();
+    window.addEventListener("mousemove", (e) => { tx = e.clientX; ty = e.clientY; });
+
+    let noiseA = new Float32Array(0), noiseB = new Float32Array(0), tNoise = 0;
+    function renderBG(){
+      const cols = Math.ceil(window.innerWidth / 2), rows = Math.ceil(window.innerHeight / 46);
+      if (noiseA.length !== cols*rows) {
+        noiseA = new Float32Array(cols*rows).map(() => Math.random());
+        noiseB = new Float32Array(cols*rows).map(() => Math.random());
+      }
+      mx += (tx - mx) * 0.1; my += (ty - my) * 0.1;
+      tNoise = Math.min(1, tNoise + 0.01);
+      if(tNoise >= 1) { noiseA = noiseB; noiseB = new Float32Array(cols*rows).map(() => Math.random()); tNoise = 0; }
+      
+      bctx.clearRect(0,0,bg.width, bg.height);
+      bctx.fillStyle = `rgba(0,0,0,0.05)`;
+      for(let i=0; i<noiseA.length; i++) {
+        const x = (i % cols) * 2, y = Math.floor(i / cols) * 46;
+        const n = noiseA[i] + (noiseB[i] - noiseA[i]) * tNoise;
+        bctx.fillStyle = `rgba(0,0,0,${n*n*0.2})`;
+        bctx.fillRect(x,y,2,46);
+      }
+      requestAnimationFrame(renderBG);
+    }
+    renderBG();
+
+    // 4. RANDOM LETTERS SCRIPT
+    window.addEventListener("DOMContentLoaded", () => {
+      const fonts = ["Courier New", "serif", "monospace", "Cambria"];
+      const walker = document.createTreeWalker(document.querySelector
