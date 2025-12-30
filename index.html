@@ -4,243 +4,81 @@
   <meta charset="UTF-8" />
   <title>Matteo Traverso – Sound Artist</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
   <style>
     :root{
       --bg:#fff;--fg:#111;--muted:#555;--accent:#ff4f9a;--border:#ccc;
       --purple:#6f2cff; 
       --font-sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      --font-mono:"SF Mono",ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
     }
-
     *{ box-sizing:border-box; }
-
     body{
-      margin:0;
-      min-height:100vh;
-      background:var(--bg);
-      color:var(--fg);
-      font-family:var(--font-sans);
-      overflow-x:hidden;
-      cursor:none; 
+      margin:0; min-height:100vh; background:var(--bg); color:var(--fg);
+      font-family:var(--font-sans); overflow-x:hidden; cursor:none; 
     }
-
     *, *::before, *::after{ cursor:none !important; }
 
-    /* ===== Layers per Script ===== */
-    #bg-lines{
-      position:fixed;
-      inset:0;
-      width:100vw;
-      height:100vh;
-      z-index:0;
-      pointer-events:none;
-    }
+    /* Layers */
+    #bg-lines { position:fixed; inset:0; z-index:0; pointer-events:none; }
+    #creature-layer { position:fixed; inset:0; z-index:1; pointer-events:none; }
+    #grad-square { position:fixed; width:50px; height:50px; pointer-events:none; z-index:9999; image-rendering:pixelated; transform:translate(-50%,-50%); }
+    
+    .creature { position:absolute; width:60px; height:60px; image-rendering:pixelated; opacity:0; z-index:1; }
 
-    #creature-layer{
-      position:fixed;
-      inset:0;
-      z-index:1;
-      pointer-events:none;
-    }
-
-    #grad-square{
-      position:fixed;
-      width:50px;height:50px;
-      top:50%;left:50%;
-      transform:translate(-50%,-50%);
-      image-rendering:pixelated;
-      pointer-events:none;
-      z-index:9999;
-    }
-
-    .creature{
-      position:absolute;
-      width:60px;
-      height:60px;
-      image-rendering:pixelated;
-      opacity:0;
-      transition:none;
-      filter:none;
-    }
-
-    /* ===== Layout Content ===== */
     .frame{
-      max-width:1100px;
-      margin:2.5rem auto 3rem;
-      padding:0 1.5rem;
-      border:1px dashed var(--border);
-      background:rgba(255,255,255,0.92);
-      backdrop-filter:blur(6px);
-      position:relative;
-      z-index:2;
+      max-width:1100px; margin:2.5rem auto 3rem; padding:0 1.5rem;
+      border:1px dashed var(--border); background:rgba(255,255,255,0.92);
+      backdrop-filter:blur(6px); position:relative; z-index:2;
     }
 
-    header{
-      padding:1.5rem 1.5rem 1rem;
-      border-bottom:1px solid var(--border);
-      display:flex;
-      flex-wrap:wrap;
-      gap:1rem 2rem;
-      align-items:baseline;
-      justify-content:space-between;
-    }
-
-    .site-title{
-      font-family: Cambria, serif;
-      font-size:20px;
-      font-weight:700;
-      letter-spacing:.06em;
-      text-transform:uppercase;
-    }
-
-    .tagline{
-      font-size:.9rem;
-      color:var(--muted);
-      max-width:25rem;
-    }
-
-    nav{
-      display:flex;
-      gap:1.2rem;
-      font-size:.85rem;
-      text-transform:uppercase;
-      letter-spacing:.12em;
-    }
-
+    header{ padding:1.5rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:1rem; }
+    .site-title{ font-family: Cambria, serif; font-size:20px; font-weight:700; text-transform:uppercase; }
+    .tagline{ font-size:.9rem; color:var(--muted); max-width:25rem; }
+    nav{ display:flex; gap:1.2rem; font-size:.85rem; text-transform:uppercase; }
     nav a{ color:var(--muted); text-decoration:none; position:relative; }
-    nav a::after{
-      content:"";
-      position:absolute;
-      left:0;
-      bottom:-.12rem;
-      width:0;
-      height:2px;
-      background:var(--accent);
-      transition:width 150ms ease;
-    }
     nav a:hover{ color:var(--fg); }
-    nav a:hover::after{ width:100%; }
 
     main{ padding:1.5rem; }
-
-    .layout{
-      display:grid;
-      grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr);
-      gap:2rem;
-    }
+    .layout{ display:grid; grid-template-columns:1.1fr 1.4fr; gap:2rem; }
     @media(max-width:800px){ .layout{ grid-template-columns:1fr; } }
 
-    .intro h1{
-      font-size:clamp(1.2rem, 2vw, 1.8rem);
-      margin:0 0 .75rem;
-    }
-
-    .intro p{
-      margin:0 0 .75rem;
-      color:var(--muted);
-      font-size:.98rem;
-    }
-
-    /* ===== Icon Card Design ===== */
-    .icon-grid {
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      min-height: 280px;
-    }
-
-    .icon-row {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 2rem;
-      width: 100%;
-    }
-
+    /* Box e Didascalie */
+    .icon-grid { display: flex; align-items: flex-end; min-height: 250px; }
+    .icon-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 2rem; width: 100%; }
     .icon-card {
-      position: relative;
-      width: 170px;
-      height: 110px;
-      background: #fff;
-      border: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-decoration: none;
-      transition: all 140ms ease;
-      margin-bottom: 50px; /* Spazio per la didascalia esterna */
+      position: relative; width: 170px; height: 110px; background: #fff;
+      border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+      text-decoration: none; margin-bottom: 50px; transition: border-color 0.2s;
     }
-
-    .icon-card:hover {
-      border-color: var(--purple);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-
-    .icon-card img {
-      width: 48px;
-      height: 48px;
-      object-fit: contain;
-    }
-
+    .icon-card:hover { border-color: var(--purple); }
+    .icon-card img { width: 45px; height: 45px; object-fit: contain; }
     .icon-caption {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      padding-top: 12px;
-      font-size: .68rem;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      color: var(--muted);
-      text-align: center;
-      line-height: 1.25;
-      pointer-events: none;
+      position: absolute; top: 100%; left: 0; right: 0; padding-top: 10px;
+      font-size: .65rem; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--muted); text-align: center; pointer-events: none;
     }
 
-    footer{
-      padding:1.5rem;
-      border-top:1px solid var(--border);
-      font-size:.78rem;
-      color:var(--muted);
-      display:flex;
-      flex-wrap:wrap;
-      justify-content:space-between;
-      gap:.75rem;
-    }
-
-    footer a{ color:var(--muted); text-decoration:none; }
-    footer a:hover{ color:var(--fg); text-decoration:underline; }
-
+    footer{ padding:1.5rem; border-top:1px solid var(--border); font-size:.78rem; color:var(--muted); display:flex; justify-content:space-between; }
     .random-letter{ display:inline-block; white-space:pre; }
   </style>
 </head>
-
 <body>
-  <canvas id="bg-lines" aria-hidden="true"></canvas>
-  <div id="creature-layer" aria-hidden="true"></div>
-  <canvas id="grad-square" width="50" height="50" aria-hidden="true"></canvas>
+
+  <canvas id="bg-lines"></canvas>
+  <div id="creature-layer"></div>
+  <canvas id="grad-square" width="50" height="50"></canvas>
 
   <div class="frame">
     <header>
       <div>
-        <div class="site-title"><span>Matteo Traverso</span></div>
-        <div class="tagline">Sound artist || modular synth player || improviser || sound installations and spatial audio enthusiast || digital synth developer</div>
+        <div class="site-title">Matteo Traverso</div>
+        <div class="tagline">Sound artist || modular synth || digital developer</div>
       </div>
-      <nav>
-        <a href="#works">Works</a>
-        <a href="#about">About</a>
-        <a href="#contact">Contact</a>
-      </nav>
+      <nav><a href="#works">Works</a><a href="#about">About</a><a href="#contact">Contact</a></nav>
     </header>
-
     <main>
       <div class="layout">
-        <section class="intro" id="about">
-          <h1>exploring boundaries of numb senses</h1>
-        </section>
-
-        <section id="works" aria-label="Selected works">
+        <section class="intro"><h1>exploring boundaries of numb senses</h1></section>
+        <section id="works">
           <div class="icon-grid">
             <div class="icon-row">
               <a class="icon-card" href="#">
@@ -251,114 +89,111 @@
                 <img src="audio/insta-perf-1024.png" alt="" />
                 <div class="icon-caption">installations & performances</div>
               </a>
-              <a class="icon-card" href="#">
-                <img src="audio/records-1024.png" alt="" />
-                <div class="icon-caption">records</div>
-              </a>
             </div>
           </div>
         </section>
       </div>
     </main>
-
-    <footer id="contact">
+    <footer>
       <div>© <span id="year"></span> Matteo Traverso</div>
-      <div>
-        <a href="mailto:matteo.traverso02@gmail.com">matteo.traverso02@gmail.com</a> ·
-        <a href="https://instagram.com/yourprofile" target="_blank" rel="noopener">Instagram</a> ·
-        <a href="https://github.com/yourusername" target="_blank" rel="noopener">GitHub</a>
-      </div>
+      <a href="mailto:matteo.traverso02@gmail.com">matteo.traverso02@gmail.com</a>
     </footer>
   </div>
 
   <script>
-    // 1. Variabile globale di stato
     let frozen = false;
+    let lastTime = 0;
     document.getElementById("year").textContent = new Date().getFullYear();
 
-    // 2. POINTER SCRIPT
-    const canvas = document.getElementById("grad-square");
-    const ctx = canvas.getContext("2d");
-    const pCols = 10, pRows = 10, pCell = 5, pN = pCols * pRows;
-    const baseAlpha = new Float32Array(pN), currentAlpha = new Float32Array(pN);
-    const intervals = new Float32Array(pN), timers = new Float32Array(pN);
-    const minFps = 0.01, maxFps = 8;
-    const pcx = (pCols - 1) / 2, pcy = (pRows - 1) / 2, pMaxDist = Math.sqrt(pcx*pcx + pcy*pcy);
-
-    for (let i=0; i<pN; i++){
-      const x = i % pCols, y = Math.floor(i / pCols);
-      const dx = x - pcx, dy = y - pcy;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      baseAlpha[i] = 1 - Math.min(1, dist / pMaxDist);
-      intervals[i] = 1 / (minFps + Math.random() * (maxFps - minFps));
-      timers[i] = Math.random() * intervals[i];
-      currentAlpha[i] = baseAlpha[i] * Math.random();
-    }
-
-    function pointerLoop(ts){
-      static dt = 0, last = ts;
-      dt = (ts - last) / 1000; last = ts;
-      if (!frozen) {
-        for (let i=0; i<pN; i++){
-          timers[i] += dt;
-          if (timers[i] >= intervals[i]){
-            timers[i] -= intervals[i];
-            currentAlpha[i] = baseAlpha[i] * Math.random();
-          }
-        }
-      }
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      for (let i=0; i<pN; i++){
-        if (currentAlpha[i] > 0){
-          ctx.fillStyle = `rgba(0,0,0,${currentAlpha[i]})`;
-          ctx.fillRect((i%pCols)*pCell, Math.floor(i/pCols)*pCell, pCell, pCell);
-        }
-      }
-      requestAnimationFrame(pointerLoop);
-    }
-    requestAnimationFrame(pointerLoop);
-
+    // 1. POINTER SCRIPT
+    const pCanvas = document.getElementById("grad-square");
+    const pCtx = pCanvas.getContext("2d");
+    const pCols = 10, pRows = 10, pCell = 5;
+    const pAlphas = new Float32Array(100).fill(0);
+    
     window.addEventListener("mousemove", (e) => {
-      canvas.style.left = e.clientX + "px";
-      canvas.style.top  = e.clientY + "px";
-      const el = document.elementFromPoint(e.clientX, e.clientY);
-      frozen = !!(el && el.closest("a"));
+      pCanvas.style.left = e.clientX + "px";
+      pCanvas.style.top = e.clientY + "px";
+      const target = document.elementFromPoint(e.clientX, e.clientY);
+      frozen = !!(target && target.closest("a"));
     });
 
-    // 3. BACKGROUND LINES SCRIPT
+    function drawPointer(ts) {
+      const dt = ts - lastTime;
+      lastTime = ts;
+      if (!frozen && dt < 100) {
+        pCtx.clearRect(0, 0, 50, 50);
+        for (let i = 0; i < 100; i++) {
+          if (Math.random() > 0.9) pAlphas[i] = Math.random() * 0.6;
+          pCtx.fillStyle = `rgba(0,0,0,${pAlphas[i]})`;
+          pCtx.fillRect((i % 10) * 5, Math.floor(i / 10) * 5, 5, 5);
+        }
+      }
+      requestAnimationFrame(drawPointer);
+    }
+    requestAnimationFrame(drawPointer);
+
+    // 2. BACKGROUND LINES
     const bg = document.getElementById("bg-lines");
     const bctx = bg.getContext("2d");
-    let mx = 0, my = 0, tx = 0, ty = 0;
-    function resizeBG(){
-      bg.width = window.innerWidth; bg.height = window.innerHeight;
-    }
-    window.addEventListener("resize", resizeBG); resizeBG();
-    window.addEventListener("mousemove", (e) => { tx = e.clientX; ty = e.clientY; });
+    function resize() { bg.width = window.innerWidth; bg.height = window.innerHeight; }
+    window.addEventListener("resize", resize); resize();
 
-    let noiseA = new Float32Array(0), noiseB = new Float32Array(0), tNoise = 0;
-    function renderBG(){
-      const cols = Math.ceil(window.innerWidth / 2), rows = Math.ceil(window.innerHeight / 46);
-      if (noiseA.length !== cols*rows) {
-        noiseA = new Float32Array(cols*rows).map(() => Math.random());
-        noiseB = new Float32Array(cols*rows).map(() => Math.random());
+    function drawBG() {
+      bctx.clearRect(0, 0, bg.width, bg.height);
+      for (let x = 0; x < bg.width; x += 4) {
+        bctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.05})`;
+        bctx.fillRect(x, 0, 1, bg.height);
       }
-      mx += (tx - mx) * 0.1; my += (ty - my) * 0.1;
-      tNoise = Math.min(1, tNoise + 0.01);
-      if(tNoise >= 1) { noiseA = noiseB; noiseB = new Float32Array(cols*rows).map(() => Math.random()); tNoise = 0; }
+      setTimeout(() => requestAnimationFrame(drawBG), 100);
+    }
+    drawBG();
+
+    // 3. CREATURES SCRIPT
+    const creatureLayer = document.getElementById("creature-layer");
+    function spawnCreature() {
+      const c = document.createElement("canvas");
+      c.className = "creature";
+      c.width = 50; c.height = 50;
+      c.style.left = Math.random() * window.innerWidth + "px";
+      c.style.top = Math.random() * window.innerHeight + "px";
+      creatureLayer.appendChild(c);
       
-      bctx.clearRect(0,0,bg.width, bg.height);
-      bctx.fillStyle = `rgba(0,0,0,0.05)`;
-      for(let i=0; i<noiseA.length; i++) {
-        const x = (i % cols) * 2, y = Math.floor(i / cols) * 46;
-        const n = noiseA[i] + (noiseB[i] - noiseA[i]) * tNoise;
-        bctx.fillStyle = `rgba(0,0,0,${n*n*0.2})`;
-        bctx.fillRect(x,y,2,46);
-      }
-      requestAnimationFrame(renderBG);
+      const ctx = c.getContext("2d");
+      let op = 0;
+      let fadeIn = setInterval(() => {
+        op += 0.01; c.style.opacity = op;
+        ctx.clearRect(0,0,50,50);
+        for(let i=0; i<30; i++) {
+          ctx.fillStyle = `rgba(0,0,0,${Math.random()})`;
+          ctx.fillRect(Math.random()*50, Math.random()*50, 5, 5);
+        }
+        if(op >= 0.5) { 
+          clearInterval(fadeIn);
+          setTimeout(() => {
+            let fadeOut = setInterval(() => {
+              op -= 0.01; c.style.opacity = op;
+              if(op <= 0) { clearInterval(fadeOut); c.remove(); }
+            }, 50);
+          }, 2000);
+        }
+      }, 50);
     }
-    renderBG();
+    setInterval(spawnCreature, 3000);
 
-    // 4. RANDOM LETTERS SCRIPT
-    window.addEventListener("DOMContentLoaded", () => {
-      const fonts = ["Courier New", "serif", "monospace", "Cambria"];
-      const walker = document.createTreeWalker(document.querySelector
+    // 4. RANDOM LETTERS
+    const fonts = ["Courier New", "serif", "monospace"];
+    const textNodes = [];
+    const walk = document.createTreeWalker(document.querySelector(".frame"), NodeFilter.SHOW_TEXT);
+    let n; while(n = walk.nextNode()) if(n.nodeValue.trim()) textNodes.push(n);
+    
+    textNodes.forEach(node => {
+      const span = document.createElement("span");
+      span.innerHTML = node.nodeValue.split("").map(char => 
+        `<span class="random-letter" style="font-family:${fonts[Math.floor(Math.random()*3)]}">${char}</span>`
+      ).join("");
+      node.parentNode.replaceChild(span, node);
+    });
+  </script>
+</body>
+</html>
