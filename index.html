@@ -8,6 +8,7 @@
   <style>
     :root{
       --bg:#fff;--fg:#111;--muted:#555;--accent:#ff4f9a;--border:#ccc;
+      --purple:#6f2cff; /* hover border */
       --font-sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
       --font-mono:"SF Mono",ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
     }
@@ -154,100 +155,62 @@
       font-size:.98rem;
     }
 
-    .meta-list{
-      list-style:none;
-      padding:0;
-      margin:1.2rem 0 0;
-      font-size:.85rem;
-      color:var(--muted);
-    }
-    .meta-list li{ margin-bottom:.2rem; }
-
-    .meta-label{
-      text-transform:uppercase;
-      letter-spacing:.16em;
-      font-size:.72rem;
-      color:#888;
-      display:inline-block;
-      margin-right:.5rem;
+    /* ===== Icon grid (replaces project windows) ===== */
+    .icon-grid{
+      height:100%;
+      min-height:220px;
+      display:flex;
+      align-items:center;          /* vertical center inside its column */
+      justify-content:center;      /* horizontal center */
     }
 
-    .project-grid{
-      display:grid;
-      grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+    .icon-row{
+      width:100%;
+      display:flex;
+      justify-content:center;
+      align-items:center;
       gap:1rem;
+      flex-wrap:wrap;
     }
 
-    .project-card{
+    .icon-card{
+      width:190px;
+      min-height:180px;
       border-radius:14px;
       border:1px solid var(--border);
       background:#f5f5f5;
-      padding:.9rem;
-      min-height:140px;
+      padding:1rem;
       display:flex;
       flex-direction:column;
-      justify-content:flex-end;
+      align-items:center;
+      justify-content:center;
       text-decoration:none;
       color:inherit;
+      transition:border-color 140ms ease, box-shadow 140ms ease;
     }
 
-    .project-card:hover{
-      border-color:var(--accent);
-      box-shadow:0 0 0 1px rgba(255,79,154,.4);
+    .icon-card:hover{
+      border-color:var(--purple);
+      box-shadow:0 0 0 1px rgba(111,44,255,.35);
     }
 
-    .project-tag{
-      font-size:.7rem;
-      letter-spacing:.16em;
-      text-transform:uppercase;
-      color:var(--muted);
-      margin-bottom:.35rem;
-    }
-
-    .project-title{ font-size:.95rem;font-weight:600; }
-    .project-meta{ font-size:.78rem;color:var(--muted);margin-top:.2rem; }
-
-    .listen-block{
-      margin-top:2.5rem;
-      border-top:1px solid var(--border);
-      padding-top:1.25rem;
-      display:grid;
-      gap:1rem;
-      grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);
-      align-items:flex-start;
-    }
-    @media(max-width:800px){ .listen-block{ grid-template-columns:1fr; } }
-
-    .listen-block h2{
-      font-size:1rem;
-      text-transform:uppercase;
-      letter-spacing:.16em;
-      margin:0 0 .5rem;
-    }
-
-    .listen-block p{
-      margin:0 0 .5rem;
-      font-size:.9rem;
-      color:var(--muted);
-    }
-
-    .player-shell{
-      border-radius:14px;
-      border:1px solid var(--border);
-      padding:.8rem .9rem;
-      background:#f8f8f8;
-      font-size:.85rem;
-    }
-
-    audio{ width:100%; margin-top:.55rem; }
-
-    .small-label{
-      font-size:.72rem;
-      letter-spacing:.16em;
-      text-transform:uppercase;
-      color:#808080;
+    .icon-card img{
+      width:64px;
+      height:64px;
+      object-fit:contain;
+      image-rendering:auto;
       display:block;
-      margin-bottom:.3rem;
+      margin-bottom:.8rem;
+      filter:none;
+    }
+
+    .icon-caption{
+      font-size:.78rem;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      color:var(--muted);
+      text-align:center;
+      line-height:1.25;
     }
 
     footer{
@@ -303,7 +266,6 @@
 
       <nav>
         <a href="#works">Works</a>
-        <a href="#listen">Listen</a>
         <a href="#about">About</a>
         <a href="#contact">Contact</a>
       </nav>
@@ -313,69 +275,31 @@
       <div class="layout">
         <section class="intro" id="about">
           <h1>exploring boundaries of numb senses</h1>
-
           <p>I work with acoustic and electronic instruments, dancers and visual artists.</p>
-          <p>I am currently based in Köln, working on impro-sets, performances and sound installations.</p>
-
-          <ul class="meta-list">
-            <li><span class="meta-label">Based in</span>Köln / NRW / Europe</li>
-            <li><span class="meta-label">Practices</span>sound art, improvisation, AV performance, installation</li>
-            <li>
-              <span class="meta-label">Contact</span>
-              <a href="mailto:matteo.traverso0@2gmail.com">matteo.traverso0@2gmail.com</a>
-            </li>
-          </ul>
         </section>
 
         <section id="works" aria-label="Selected works">
-          <div class="project-grid">
-            <a class="project-card" href="projects/exoplanet.html">
-              <div class="project-tag">AV performance</div>
-              <div class="project-title">EXOPLANET</div>
-              <div class="project-meta">improvised quintet · planetarium setting</div>
-            </a>
+          <div class="icon-grid">
+            <div class="icon-row">
+              <!-- Put these PNG files next to index.html (or adjust paths) -->
+              <a class="icon-card" href="#" aria-label="Acousmatic & multichannel">
+                <img src="audio/acousmatic.png" alt="" />
+                <div class="icon-caption">acousmatic &amp; multichannel</div>
+              </a>
 
-            <a class="project-card" href="projects/probe-the-oracle.html">
-              <div class="project-tag">Violin & algorithm duet</div>
-              <div class="project-title">PROBE THE ORACLE</div>
-              <div class="project-meta">machine listening · concatenative synthesis</div>
-            </a>
+              <a class="icon-card" href="#" aria-label="Installations & performances">
+                <img src="audio/insta-perf.png" alt="" />
+                <div class="icon-caption">installations &amp; performances</div>
+              </a>
 
-            <a class="project-card" href="projects/harsh-coziness.html">
-              <div class="project-tag">Performance</div>
-              <div class="project-title">HARSH COZINESS</div>
-              <div class="project-meta">DIY feedback objects · small speakers</div>
-            </a>
-
-            <a class="project-card" href="projects/installations.html">
-              <div class="project-tag">Installation</div>
-              <div class="project-title">INSTALLATIONS</div>
-              <div class="project-meta">ongoing research in spatial sound</div>
-            </a>
+              <a class="icon-card" href="#" aria-label="Records">
+                <img src="audio/records.png" alt="" />
+                <div class="icon-caption">records</div>
+              </a>
+            </div>
           </div>
         </section>
       </div>
-
-      <section class="listen-block" id="listen">
-        <div>
-          <h2>Listen</h2>
-          <p>
-            A small selection of recordings. For more, visit my
-            <a href="https://matteotraverso.bandcamp.com" target="_blank" rel="noopener">
-              Bandcamp / SoundCloud
-            </a>.
-          </p>
-        </div>
-
-        <div class="player-shell">
-          <span class="small-label">Featured track</span>
-          <div><strong>Track title – from “Exoplanet”</strong></div>
-          <audio controls>
-            <source src="Lame_serenade_organ_model44.1" type="audio/mpeg" />
-            Your browser does not support the audio element.
-          </audio>
-        </div>
-      </section>
     </main>
 
     <footer id="contact">
@@ -627,10 +551,7 @@
         for (let x=0; x<cols; x++){
           const px = x * cellW;
           const n = lerp(noiseA[i], noiseB[i], tNoise);
-
-          // your last code had higher intensity; keep it:
           const a = (n * n) * 0.4;
-
           bctx.fillStyle = `rgba(0,0,0,${a})`;
           bctx.fillRect(px, py, cellW, cellH);
           i++;
@@ -659,7 +580,6 @@
       const baseH = rows * cellSize; // 50
       const N = cols * rows;
 
-      // radial base probability (center higher)
       const base = new Float32Array(N);
       const cx = (cols - 1) / 2;
       const cy = (rows - 1) / 2;
@@ -681,16 +601,16 @@
         const edge = randInt(0,3);
         let x, y;
 
-        if (edge === 0){ // top
+        if (edge === 0){
           x = rand(margin, w - margin);
           y = rand(margin, margin + 90);
-        } else if (edge === 1){ // bottom
+        } else if (edge === 1){
           x = rand(margin, w - margin);
           y = rand(h - margin - 90, h - margin);
-        } else if (edge === 2){ // left
+        } else if (edge === 2){
           x = rand(margin, margin + 90);
           y = rand(margin, h - margin);
-        } else { // right
+        } else {
           x = rand(w - margin - 90, w - margin);
           y = rand(margin, h - margin);
         }
@@ -703,7 +623,6 @@
         c.width = baseW;
         c.height = baseH;
 
-        // size ~ pointer +-30%
         const size = rand(35, 65);
         c.style.width = `${size}px`;
         c.style.height = `${size}px`;
@@ -717,97 +636,83 @@
         const ctx = c.getContext("2d");
         ctx.imageSmoothingEnabled = false;
 
-       // --- Pointer-like alpha per cell (not just on/off) ---
-const alpha = new Float32Array(N);
-const timers = new Float32Array(N);
-const intervals = new Float32Array(N);
+        const alpha = new Float32Array(N);
+        const timers = new Float32Array(N);
+        const intervals = new Float32Array(N);
 
-// slower per-cell updates (more “calm”)
-const minInterval = 1.6;
-const maxInterval = 6.0;
+        const minInterval = 1.6;
+        const maxInterval = 6.0;
 
-// init
-for (let i=0; i<N; i++){
-  intervals[i] = rand(minInterval, maxInterval);
-  timers[i] = rand(0, intervals[i]);
-  alpha[i] = base[i] * Math.random(); // same as pointer: base * randomMul
-}
+        for (let i=0; i<N; i++){
+          intervals[i] = rand(minInterval, maxInterval);
+          timers[i] = rand(0, intervals[i]);
+          alpha[i] = base[i] * Math.random();
+        }
 
-function draw(){
-  ctx.clearRect(0,0,baseW,baseH);
-  let i = 0;
-  for (let y=0; y<rows; y++){
-    for (let x=0; x<cols; x++){
-      const a = alpha[i]; // 0..1
-      if (a > 0.01){
-        ctx.fillStyle = `rgba(0,0,0,${a})`; // intermediate transparency like pointer
-        ctx.fillRect(x*cellSize, y*cellSize, cellSize, cellSize);
-      }
-      i++;
-    }
-  }
-}
+        function draw(){
+          ctx.clearRect(0,0,baseW,baseH);
+          let i = 0;
+          for (let y=0; y<rows; y++){
+            for (let x=0; x<cols; x++){
+              const a = alpha[i];
+              if (a > 0.01){
+                ctx.fillStyle = `rgba(0,0,0,${a})`;
+                ctx.fillRect(x*cellSize, y*cellSize, cellSize, cellSize);
+              }
+              i++;
+            }
+          }
+        }
 
-// tick updates (slow flicker)
-let last = null;
-function tick(ts){
-  if (last === null) last = ts;
-  const dt = (ts - last) / 1000;
-  last = ts;
+        let last = null;
+        function tick(ts){
+          if (last === null) last = ts;
+          const dt = (ts - last) / 1000;
+          last = ts;
 
-  if (!frozen){
-    for (let i=0; i<N; i++){
-      timers[i] += dt;
-      if (timers[i] >= intervals[i]){
-        timers[i] -= intervals[i];
-        intervals[i] = rand(minInterval, maxInterval);
-        alpha[i] = base[i] * Math.random(); // pointer logic
-      }
-    }
-    draw();
-  }
+          if (!frozen){
+            for (let i=0; i<N; i++){
+              timers[i] += dt;
+              if (timers[i] >= intervals[i]){
+                timers[i] -= intervals[i];
+                intervals[i] = rand(minInterval, maxInterval);
+                alpha[i] = base[i] * Math.random();
+              }
+            }
+            draw();
+          }
+          requestAnimationFrame(tick);
+        }
 
-  requestAnimationFrame(tick);
-}
+        draw();
+        requestAnimationFrame(tick);
 
-draw();
-requestAnimationFrame(tick);
+        async function lifecycle(){
+          while (true){
+            c.style.opacity = "0";
+            frozen = false;
 
-// --- Instant POP in/out, but slower overall ---
-async function lifecycle(){
-  while (true){
-    // wait hidden longer (slower appear rate)
-    c.style.opacity = "0";
-    frozen = false;
+            await new Promise(r => setTimeout(r, randInt(2200, 9000)));
 
-    // hidden time: increase these to make appearances rarer
-    await new Promise(r => setTimeout(r, randInt(2200, 9000)));
+            const p = edgePosition();
+            c.style.left = `${p.x}px`;
+            c.style.top  = `${p.y}px`;
 
-    // reposition + size each appearance
-    const p = edgePosition();
-    c.style.left = `${p.x}px`;
-    c.style.top  = `${p.y}px`;
+            const size = rand(35, 65);
+            c.style.width = `${size}px`;
+            c.style.height = `${size}px`;
 
-    const size = rand(35, 65);
-    c.style.width = `${size}px`;
-    c.style.height = `${size}px`;
+            c.style.opacity = String(rand(0.35, 0.75));
+            frozen = false;
 
-    // POP IN
-    // (slightly subtle, but visible)
-    c.style.opacity = String(rand(0.35, 0.75));
-    frozen = false;
+            await new Promise(r => setTimeout(r, randInt(1800, 6500)));
 
-    // visible time: longer, calmer
-    await new Promise(r => setTimeout(r, randInt(1800, 6500)));
-
-    // POP OUT
-    frozen = true;
-    c.style.opacity = "0";
-    frozen = false;
-  }
-}
-
-lifecycle();
+            frozen = true;
+            c.style.opacity = "0";
+            frozen = false;
+          }
+        }
+        lifecycle();
 
         return c;
       }
