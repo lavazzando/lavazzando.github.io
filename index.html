@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
+  <script>document.documentElement.classList.remove("no-js");</script>
   <meta charset="UTF-8" />
   <title>Matteo Traverso – Sound Artist</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -27,6 +28,9 @@
 
     /* No native cursor anywhere */
     *, *::before, *::after{ cursor:none !important; }
+
+    /* Fallback: if JS fails to load, restore a real cursor so the site stays usable */
+    html.no-js, html.no-js *{ cursor:auto !important; }
 
     /* ===== Layers ===== */
 
@@ -190,7 +194,7 @@
     }
 
     .icon-card:hover{
-      border-color:var();
+      border-color:var(--purple);
       box-shadow:0 0 0 1px rgba(111,44,255,.35);
     }
 
@@ -220,7 +224,6 @@
   line-height: 1.25;
   /* Non serve altro, Flexbox gestisce la posizione */
 }
-    }
 
     footer{
       padding:0 1.5rem 1.5rem;
@@ -288,17 +291,17 @@
           <div class="icon-grid">
             <div class="icon-row">
               <!-- Put these PNG files next to index.html (or adjust paths) -->
-              <a class="icon-card" href="#" aria-label="Acousmatic & multichannel">
+              <a class="icon-card" href="#" data-placeholder="true" aria-disabled="true" aria-label="Acousmatic & multichannel (coming soon)">
                 <img src="audio/acousmatic-1024.png" alt="" />
                 <div class="icon-caption">acousmatic & multichannel</div>
               </a>
 
-              <a class="icon-card" href="#" aria-label="Installations & performances">
+              <a class="icon-card" href="#" data-placeholder="true" aria-disabled="true" aria-label="Installations & performances (coming soon)">
                 <img src="audio/insta-perf-1024.png" alt="" />
                 <div class="icon-caption">installations & performances</div>
               </a>
 
-              <a class="icon-card" href="#" aria-label="Records">
+              <a class="icon-card" href="#" data-placeholder="true" aria-disabled="true" aria-label="Records (coming soon)">
                 <img src="audio/records-1024.png" alt="" />
                 <div class="icon-caption">records</div>
               </a>
@@ -320,6 +323,14 @@
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+
+  <script>
+    // Placeholder icon-cards don't go anywhere yet — stop them from jumping to page top.
+    // Remove data-placeholder="true" (and this guard) once each card has a real destination.
+    document.querySelectorAll('.icon-card[data-placeholder="true"]').forEach((el) => {
+      el.addEventListener("click", (e) => e.preventDefault());
+    });
   </script>
 
   <script>
@@ -455,15 +466,31 @@
 
       for (const textNode of nodes){
         const text = textNode.nodeValue;
+        const insideLink = !!(textNode.parentElement && textNode.parentElement.closest("a"));
+
         const frag = document.createDocumentFragment();
-        for (const ch of text){
+
+        if (insideLink){
+          // Inside a clickable link: scramble as ONE span, not per-character.
+          // Splitting link text into dozens of tiny inline spans breaks word-wrap
+          // and turns a single click target into many slivers that are easy to miss.
           const s = document.createElement("span");
           s.className = "random-letter";
-          s.textContent = ch;
+          s.textContent = text;
           s.style.fontFamily = randomItem(fonts);
           s.style.fontWeight = String(randomItem(weights));
           frag.appendChild(s);
+        } else {
+          for (const ch of text){
+            const s = document.createElement("span");
+            s.className = "random-letter";
+            s.textContent = ch;
+            s.style.fontFamily = randomItem(fonts);
+            s.style.fontWeight = String(randomItem(weights));
+            frag.appendChild(s);
+          }
         }
+
         textNode.parentNode.replaceChild(frag, textNode);
       }
     });
