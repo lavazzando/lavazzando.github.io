@@ -1,7 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" class="no-js">
+<html lang="en">
 <head>
-  <script>document.documentElement.classList.remove("no-js");</script>
   <meta charset="UTF-8" />
   <title>Matteo Traverso – Sound Artist</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -23,14 +22,13 @@
       color:var(--fg);
       font-family:var(--font-sans);
       overflow-x:hidden;
-      cursor:none; /* hide OS cursor */
+      cursor:none; /* hide OS cursor — restored via .no-js fallback below */
     }
 
-    /* No native cursor anywhere */
+    /* No native cursor anywhere, EXCEPT when JS hasn't run (no-js class on <html>) */
     *, *::before, *::after{ cursor:none !important; }
-
-    /* Fallback: if JS fails to load, restore a real cursor so the site stays usable */
     html.no-js, html.no-js *{ cursor:auto !important; }
+    html.no-js a, html.no-js a *{ cursor:pointer !important; }
 
     /* ===== Layers ===== */
 
@@ -208,22 +206,21 @@
       filter:none;
     }
 
-   .icon-wrapper {
-  display: flex;
-  flex-direction: column; /* Mette gli elementi uno sotto l'altro */
-  align-items: center;    /* Centra tutto orizzontalmente */
-  gap: 10px;              /* Crea spazio tra il box e il testo */
-}
+    .icon-wrapper {
+      display: flex;
+      flex-direction: column; /* stack box and caption */
+      align-items: center;    /* center horizontally */
+      gap: 10px;              /* space between box and text */
+    }
 
-.icon-caption {
-  font-size: .78rem;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--muted);
-  text-align: center;
-  line-height: 1.25;
-  /* Non serve altro, Flexbox gestisce la posizione */
-}
+    .icon-caption {
+      font-size: .78rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.25;
+    }
 
     footer{
       padding:0 1.5rem 1.5rem;
@@ -253,6 +250,12 @@
       letter-spacing: .06em;
       color: var(--fg);
     }
+
+    /* Keep links clickable as one unit even though their text is split into spans */
+    nav a, footer a, .icon-caption{
+      display:inline-flex;
+      flex-wrap:wrap;
+    }
   </style>
 </head>
 
@@ -270,8 +273,7 @@
     <header>
       <div>
         <div class="site-title"><span>Matteo Traverso</span></div>
-        <div class="tagline"> Sound artist || modular synth player || improviser || sound installations and spatial audio entusiast || digital synth developer ||
-        </div>
+        <div class="tagline">|| sound art || free improvisation || performance ||<br>|| DSP || acousmatic and multichannel || sound installation ||</div>
       </div>
 
       <nav>
@@ -284,24 +286,24 @@
     <main>
       <div class="layout">
         <section class="intro" id="about">
-          <h1>exploring boundaries of numb senses</h1>
+          <h1>exploring boundaries<br>of numb senses</h1>
         </section>
 
         <section id="works" aria-label="Selected works">
           <div class="icon-grid">
             <div class="icon-row">
               <!-- Put these PNG files next to index.html (or adjust paths) -->
-              <a class="icon-card" href="#" data-placeholder="true" aria-disabled="true" aria-label="Acousmatic & multichannel (coming soon)">
+              <a class="icon-card" href="#acousmatic" aria-label="Acousmatic & multichannel">
                 <img src="audio/acousmatic-1024.png" alt="" />
                 <div class="icon-caption">acousmatic & multichannel</div>
               </a>
 
-              <a class="icon-card" href="#" data-placeholder="true" aria-disabled="true" aria-label="Installations & performances (coming soon)">
+              <a class="icon-card" href="#installations" aria-label="Installations & performances">
                 <img src="audio/insta-perf-1024.png" alt="" />
                 <div class="icon-caption">installations & performances</div>
               </a>
 
-              <a class="icon-card" href="#" data-placeholder="true" aria-disabled="true" aria-label="Records (coming soon)">
+              <a class="icon-card" href="#records" aria-label="Records">
                 <img src="audio/records-1024.png" alt="" />
                 <div class="icon-caption">records</div>
               </a>
@@ -326,10 +328,11 @@
   </script>
 
   <script>
-    // Placeholder icon-cards don't go anywhere yet — stop them from jumping to page top.
-    // Remove data-placeholder="true" (and this guard) once each card has a real destination.
-    document.querySelectorAll('.icon-card[data-placeholder="true"]').forEach((el) => {
-      el.addEventListener("click", (e) => e.preventDefault());
+    // No-JS / pre-JS cursor fallback: show a real cursor until this script runs,
+    // and forever if JS is disabled or throws before this point.
+    document.documentElement.classList.add("no-js");
+    window.addEventListener("DOMContentLoaded", () => {
+      document.documentElement.classList.remove("no-js");
     });
   </script>
 
@@ -430,7 +433,10 @@
 
   <script>
     // ===== Random font per-letter across the whole site =====
-    window.addEventListener("DOMContentLoaded", () => {
+    // NOTE: runs once on DOMContentLoaded. If you add content dynamically later
+    // (e.g. injecting project descriptions via JS), call scrambleText() again
+    // on the new nodes, or move this into a reusable function.
+    function scrambleText(root){
       const fonts = [
         "Courier New, monospace",
         "OCR A Std, monospace",
@@ -443,7 +449,7 @@
       const randomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
       const walker = document.createTreeWalker(
-        document.body,
+        root,
         NodeFilter.SHOW_TEXT,
         {
           acceptNode(node){
@@ -466,33 +472,21 @@
 
       for (const textNode of nodes){
         const text = textNode.nodeValue;
-        const insideLink = !!(textNode.parentElement && textNode.parentElement.closest("a"));
-
         const frag = document.createDocumentFragment();
-
-        if (insideLink){
-          // Inside a clickable link: scramble as ONE span, not per-character.
-          // Splitting link text into dozens of tiny inline spans breaks word-wrap
-          // and turns a single click target into many slivers that are easy to miss.
+        for (const ch of text){
           const s = document.createElement("span");
           s.className = "random-letter";
-          s.textContent = text;
+          s.textContent = ch;
           s.style.fontFamily = randomItem(fonts);
           s.style.fontWeight = String(randomItem(weights));
           frag.appendChild(s);
-        } else {
-          for (const ch of text){
-            const s = document.createElement("span");
-            s.className = "random-letter";
-            s.textContent = ch;
-            s.style.fontFamily = randomItem(fonts);
-            s.style.fontWeight = String(randomItem(weights));
-            frag.appendChild(s);
-          }
         }
-
         textNode.parentNode.replaceChild(frag, textNode);
       }
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      scrambleText(document.body);
     });
   </script>
 
