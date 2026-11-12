@@ -65,10 +65,12 @@
       margin:3.25rem auto 3.9rem;
       padding:0 1.95rem;
       border:none;
-      background:var(--plate);
       color:var(--plate-fg);
+      /* plate (off): uncomment these three lines to bring it back
+      background:var(--plate);
       backdrop-filter:blur(var(--plate-blur));
       -webkit-backdrop-filter:blur(var(--plate-blur));
+      */
       position:relative;
       z-index:2;
     }
@@ -109,6 +111,7 @@
       font-family: Cambria, serif;
       font-size:26px;
       font-weight:700;
+      font-style:italic;
       letter-spacing:.06em;
       text-transform:uppercase;
     }
@@ -295,7 +298,7 @@
     }
 
     /* Keep links clickable as one unit even though their text is split into spans */
-    nav a, footer a, .icon-caption{
+    nav a, footer a, .link-soon, .icon-caption{
       display:inline-flex;
       flex-wrap:wrap;
     }
@@ -323,10 +326,10 @@
 
     <main>
       <div class="layout">
+        <!-- works icons (off): remove this comment wrapper to bring them back
         <section id="works" aria-label="Selected works">
           <div class="icon-grid">
             <div class="icon-row">
-              <!-- Put these PNG files next to index.html (or adjust paths) -->
               <a class="icon-card" href="#acousmatic" aria-label="Acousmatic & multichannel">
                 <img src="audio/acousmatic-1024.png" alt="" />
                 <div class="icon-caption"><span class="cap-line">acousmatic &amp; </span><span class="cap-line">multichannel</span></div>
@@ -344,6 +347,7 @@
             </div>
           </div>
         </section>
+        -->
       </div>
     </main>
 
@@ -351,8 +355,9 @@
       <div>© <span id="year"></span> Matteo Traverso</div>
       <div>
         <a href="mailto:matteo.traverso02@gmail.com">matteo.traverso02@gmail.com</a> ·
-        <a href="https://instagram.com/yourprofile" target="_blank" rel="noopener">Instagram</a> ·
-        <a href="https://github.com/yourusername" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://www.instagram.com/trawe94/" target="_blank" rel="noopener">Instagram</a> ·
+        <a href="https://soundcloud.com/3444444" target="_blank" rel="noopener">SoundCloud</a> ·
+        <span class="link-soon">Newsletter</span><!-- TODO: newsletter link -->
       </div>
     </footer>
   </div>
@@ -496,8 +501,10 @@
       // (116 letters x font + weight), so every letter after it keeps its font.
       const taglineRnd = FONT_SEED === null ? Math.random : mulberry32(FONT_SEED + 1);
       // + nav (Works/About/Contact, 17 letters) and heading (exploring boundaries /
-      //   of numb senses, 34 letters) removed later: their draws are skipped too.
-      const OLD_TAGLINE_DRAWS = (116 + 17 + 34) * 2;
+      //   of numb senses, 34 letters) removed later: their draws are skipped too,
+      //   and the icon captions (60 letters) while they're commented out.
+      const captionsOff = !document.querySelector(".icon-caption");
+      const OLD_TAGLINE_DRAWS = (116 + 17 + 34 + (captionsOff ? 60 : 0)) * 2;
       let taglineSkipped = false;
 
       const walker = document.createTreeWalker(
@@ -533,12 +540,18 @@
 
         const text = textNode.nodeValue;
         const frag = document.createDocumentFragment();
+        let prevSpace = false;
         for (const ch of text){
+          const family = randomItem(fonts);                // always draw, so later letters keep their fonts
+          const weight = String(randomItem(weights));
+          const isSpace = /\s/.test(ch);
+          if (isSpace && prevSpace) continue;             // collapse runs of whitespace (source indentation)
+          prevSpace = isSpace;
           const s = document.createElement("span");
           s.className = "random-letter";
-          s.textContent = ch;
-          s.style.fontFamily = randomItem(fonts);
-          s.style.fontWeight = String(randomItem(weights));
+          s.textContent = isSpace ? " " : ch;
+          s.style.fontFamily = family;
+          s.style.fontWeight = weight;
           frag.appendChild(s);
         }
         textNode.parentNode.replaceChild(frag, textNode);
@@ -602,6 +615,7 @@
                                               // TICK_FPS = 1.17 + REROLL = 1 is the Max timing (whole frame every ~0.85 s)
 
       const IN1 = 0;                          // in1: +80 keeps mul_22 far above in2.a anyway
+      const GREEN_RIGHT = 3;                  // added to the G compare on the right 40% (Max: 1); higher = more green
 
       // in2.a model (fitted to the Max recording)
       const P_LOW = 0.2;                      // share of LOW points
@@ -640,7 +654,7 @@
               nb = Math.random(), na = Math.random();          // noise_1
         const gt4  = nr > 0.2;                                   // gt_4
         const gt14 = y / (ROWS - 1) > 0.8 ? 1 : 0;               // norm.g > 0.8
-        const gt17 = x / (COLS - 1) > 0.6 ? 1 : 0;               // norm.a > 0.6 (acts as x in the Max output)
+        const gt17 = x / (COLS - 1) > 0.6 ? GREEN_RIGHT : 0;     // norm.a > 0.6 (acts as x); Max adds 1
 
         cmpR[i] = gt14 + (gt4 ? nr : 0.1);                       // add_15
         cmpG[i] = Math.atan2(gt17 + (na > 0.4 ? nr : 0.6), 4.9); // atan_27
