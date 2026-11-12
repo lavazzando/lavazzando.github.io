@@ -252,6 +252,12 @@
       filter:none;
     }
 
+    /* maramao (installations & performances): 80% bigger, keeps its landscape shape */
+    .icon-card img.icon-big{
+      width:149px;
+      height:auto;
+    }
+
     .icon-wrapper {
       display: flex;
       flex-direction: column; /* stack box and caption */
@@ -344,7 +350,7 @@
               </a>
 
               <a class="icon-card" href="#installations" aria-label="Installations & performances">
-                <img src="audio/maramao.png" alt="" />
+                <img class="icon-big" src="audio/maramao.png" alt="" />
                 <div class="icon-caption"><span class="cap-line">installations &amp; </span><span class="cap-line">performances</span></div>
               </a>
 
@@ -638,12 +644,12 @@
       const INNER_SPACING = 0.6;        // inner ball spacing, as a share of their radius (lower = whiter)
       const BALL_SPACING = 45;          // one rim ball per this many px of outline
       const BALL_MIN = 28, BALL_MAX = 72;   // rim ball radius range (px)
-      const HOLD_MIN = 20, HOLD_MAX = 45;   // seconds a ball stays
-      const FADE = 4;                   // seconds to fade a ball in / out
-      const OFF_MIN = 3, OFF_MAX = 8;   // seconds before it comes back elsewhere
+      const HOLD_MIN = 13, HOLD_MAX = 30;   // seconds a ball stays
+      const FADE = 2.7;                 // seconds to fade a ball in / out
+      const OFF_MIN = 2, OFF_MAX = 5.3; // seconds before it comes back elsewhere
       const TICK_FPS = 15;
       const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const FLICKER = REDUCED ? 0 : 0.01;   // share of pixels re-randomised per tick (~7 s each)
+      const FLICKER = REDUCED ? 0 : 0.015;  // share of pixels re-randomised per tick (~4.5 s each)
 
       const canvas = document.createElement("canvas");
       canvas.className = "cloud-layer";
