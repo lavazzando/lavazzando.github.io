@@ -190,15 +190,15 @@
       width:247px;
       min-height:234px;
       border-radius:18px;
-      border:1px solid var(--border);
-      background:#ffffff;
+      border:1px solid transparent;    /* no plate: outline only on hover */
+      background:transparent;
       padding:1.3rem;
       display:flex;
       flex-direction:column;
       align-items:flex-start;
       justify-content:center;
       text-decoration:none;
-      color:var(--fg);                 /* cards stay white with dark text */
+      color:var(--plate-fg);
       transition:border-color 140ms ease, box-shadow 140ms ease;
     }
 
@@ -228,7 +228,7 @@
       font-size: 1.01rem;
       letter-spacing: .12em;
       text-transform: uppercase;
-      color: var(--muted);
+      color: var(--plate-muted);
       text-align: center;
       line-height: 1.25;
     }
