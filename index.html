@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>Matteo Traverso – Sound Artist</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
- 
+
   <style>
     :root{
       --bg:#fff;--fg:#111;--muted:#555;--accent:#ff4f9a;--border:#ccc;
@@ -16,9 +16,9 @@
       --font-sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
       --font-mono:"SF Mono",ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
     }
- 
+
     *{ box-sizing:border-box; }
- 
+
     body{
       margin:0;
       min-height:100vh;
@@ -28,14 +28,14 @@
       overflow-x:hidden;
       cursor:none; /* hide OS cursor — restored via .no-js fallback below */
     }
- 
+
     /* No native cursor anywhere, EXCEPT when JS hasn't run (no-js class on <html>) */
     *, *::before, *::after{ cursor:none !important; }
     html.no-js, html.no-js *{ cursor:auto !important; }
     html.no-js a, html.no-js a *{ cursor:pointer !important; }
- 
+
     /* ===== Layers ===== */
- 
+
     /* Background canvas: low-res cell grid, stretched to the viewport */
     #bg-lines{
       position:fixed;
@@ -47,7 +47,7 @@
       background:#000;
       image-rendering:pixelated;
     }
- 
+
     /* Creatures above background, behind content.
        White + difference: they invert whatever is under them, so they stay
        visible on the dark background. */
@@ -58,7 +58,7 @@
       pointer-events:none;
       mix-blend-mode:difference;
     }
- 
+
     /* Content above everything (except pointer) */
     .frame{
       max-width:640px;
@@ -72,7 +72,7 @@
       position:relative;
       z-index:2;
     }
- 
+
     /* Pointer on top: yellow pixel creature (10x10 cells scaled up) */
     #grad-square{
       position:fixed;
@@ -83,7 +83,7 @@
       pointer-events:none;
       z-index:9999;
     }
- 
+
     /* Creature canvases */
     .creature{
       position:absolute;
@@ -94,7 +94,7 @@
       transition:none;
       filter:none;
     }
- 
+
     header{
       padding:1.95rem 1.95rem 1.3rem;
       border-bottom:1px solid var(--border);
@@ -104,7 +104,7 @@
       align-items:baseline;
       justify-content:space-between;
     }
- 
+
     .site-title{
       font-family: Cambria, serif;
       font-size:26px;
@@ -113,13 +113,13 @@
       text-transform:uppercase;
     }
     .site-title span{ color:var(--plate-fg); }
- 
+
     .tagline{
       font-size:1.17rem;
       color:var(--plate-muted);
       max-width:32.5rem;
     }
- 
+
     nav{
       display:flex;
       gap:1.56rem;
@@ -127,13 +127,13 @@
       text-transform:uppercase;
       letter-spacing:.12em;
     }
- 
+
     nav a{
       color:var(--plate-muted);
       text-decoration:none;
       position:relative;
     }
- 
+
     nav a::after{
       content:"";
       position:absolute;
@@ -144,30 +144,30 @@
       background:var(--accent);
       transition:width 150ms ease;
     }
- 
+
     nav a:hover{ color:var(--plate-fg); }
     nav a:hover::after{ width:100%; }
- 
+
     main{ padding:1.95rem; }
- 
+
     .layout{
       display:grid;
       grid-template-columns:1fr;
       gap:1.3rem;
     }
     @media(max-width:800px){ .layout{ grid-template-columns:1fr; } }
- 
+
     .intro h1{
       font-size:clamp(1.56rem,2.6vw,2.34rem);
       margin:0 0 .98rem;
     }
- 
+
     .intro p{
       margin:0 0 .98rem;
       color:var(--plate-muted);
       font-size:1.27rem;
     }
- 
+
     /* ===== Icon grid (replaces project windows) ===== */
     .icon-grid{
       height:100%;
@@ -175,7 +175,7 @@
       align-items:center;          /* vertical center inside its column */
       justify-content:center;      /* horizontal center */
     }
- 
+
     .icon-row{
       width:100%;
       display:flex;
@@ -184,7 +184,7 @@
       gap:1.3rem;
       flex-wrap:wrap;
     }
- 
+
     .icon-card{
       width:247px;
       min-height:234px;
@@ -198,7 +198,7 @@
       text-decoration:none;
       color:var(--plate-fg);
     }
- 
+
     /* hover / keyboard focus: two vertical lines on each side.
        Each line's position / size comes from --l1 --l2 (left) and --r1 --r2 (right),
        set per card by the "icon lines" script: "x y / width height". */
@@ -229,7 +229,7 @@
     .icon-card:focus-visible::before,
     .icon-card:focus-visible::after{ opacity:1; }
     .icon-card:focus-visible{ outline:none; }
- 
+
     .icon-card img{
       width:83px;
       height:83px;
@@ -239,14 +239,14 @@
       margin-bottom:1.04rem;
       filter:none;
     }
- 
+
     .icon-wrapper {
       display: flex;
       flex-direction: column; /* stack box and caption */
       align-items: center;    /* center horizontally */
       gap: 10px;              /* space between box and text */
     }
- 
+
     .icon-caption {
       font-size: 1.01rem;
       letter-spacing: .12em;
@@ -256,7 +256,15 @@
       justify-content: center;         /* caption is inline-flex (scrambled letters) */
       line-height: 1.25;
     }
- 
+
+    /* one caption line each; a line never wraps inside itself */
+    .icon-caption .cap-line{
+      display:flex;
+      flex-wrap:nowrap;
+      justify-content:center;
+      width:100%;
+    }
+
     footer{
       padding:0 1.95rem 1.95rem;
       border-top:1px solid var(--border);
@@ -267,16 +275,16 @@
       justify-content:space-between;
       gap:.98rem;
     }
- 
+
     footer a{ color:var(--plate-muted); text-decoration:none; }
     footer a:hover{ color:var(--plate-fg); text-decoration:underline; }
- 
+
     /* per-letter spans */
     .random-letter{
       display:inline-block;
       white-space:pre;
     }
- 
+
     /* keep title readable even when scrambled */
     .site-title .random-letter{
       font-family: Cambria, serif !important;
@@ -285,7 +293,7 @@
       letter-spacing: .06em;
       color: var(--plate-fg);
     }
- 
+
     /* Keep links clickable as one unit even though their text is split into spans */
     nav a, footer a, .icon-caption{
       display:inline-flex;
@@ -293,51 +301,51 @@
     }
   </style>
 </head>
- 
+
 <body>
   <!-- Background (jit.gen port) -->
   <canvas id="bg-lines" aria-hidden="true"></canvas>
- 
+
   <!-- Creatures layer -->
   <div id="creature-layer" aria-hidden="true"></div>
- 
+
   <!-- Pointer -->
   <canvas id="grad-square" width="60" height="60" aria-hidden="true"></canvas>
- 
+
   <div class="frame">
     <header>
       <div>
         <div class="site-title"><span>Matteo Traverso</span></div>
-        <div class="tagline">|| sound art || free improvisation || performance ||<br>|| DSP || acousmatic and multichannel ||<br>|| sound installation ||</div>
+        <div class="tagline">|| sound || free improvisation ||<br>|| data processing || machine interaction ||<br>|| installation ||</div>
       </div>
- 
+
       <nav>
         <a href="#works">Works</a>
         <a href="#about">About</a>
         <a href="#contact">Contact</a>
       </nav>
     </header>
- 
+
     <main>
       <div class="layout">
         <section class="intro" id="about">
           <h1>exploring boundaries<br>of numb senses</h1>
         </section>
- 
+
         <section id="works" aria-label="Selected works">
           <div class="icon-grid">
             <div class="icon-row">
               <!-- Put these PNG files next to index.html (or adjust paths) -->
               <a class="icon-card" href="#acousmatic" aria-label="Acousmatic & multichannel">
                 <img src="audio/acousmatic-1024.png" alt="" />
-                <div class="icon-caption">acousmatic & multichannel</div>
+                <div class="icon-caption"><span class="cap-line">acousmatic &amp; </span><span class="cap-line">multichannel</span></div>
               </a>
- 
+
               <a class="icon-card" href="#installations" aria-label="Installations & performances">
                 <img src="audio/insta-perf-1024.png" alt="" />
-                <div class="icon-caption">installations & performances</div>
+                <div class="icon-caption"><span class="cap-line">installations &amp; </span><span class="cap-line">performances</span></div>
               </a>
- 
+
               <a class="icon-card" href="#records" aria-label="Records">
                 <img src="audio/records-1024.png" alt="" />
                 <div class="icon-caption">records</div>
@@ -347,7 +355,7 @@
         </section>
       </div>
     </main>
- 
+
     <footer id="contact">
       <div>© <span id="year"></span> Matteo Traverso</div>
       <div>
@@ -357,11 +365,11 @@
       </div>
     </footer>
   </div>
- 
+
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
   </script>
- 
+
   <script>
     // No-JS / pre-JS cursor fallback: show a real cursor until this script runs,
     // and forever if JS is disabled or throws before this point.
@@ -370,34 +378,34 @@
       document.documentElement.classList.remove("no-js");
     });
   </script>
- 
+
   <script>
     // ===== Pointer creature (cursor) =====
     const canvas = document.getElementById("grad-square");
     const ctx = canvas.getContext("2d");
- 
+
     const pCols = 12;
     const pRows = 12;
     const pCell = 5;
     const pN = pCols * pRows;
- 
+
     const baseAlpha = new Float32Array(pN);
     const currentAlpha = new Float32Array(pN);
     const intervals = new Float32Array(pN);
     const timers = new Float32Array(pN);
- 
+
     const minFps = 0.01;
     const maxFps = 8;
- 
+
     const pcx = (pCols - 1) / 2;
     const pcy = (pRows - 1) / 2;
     const pRadius = pCols / 2;   // circular falloff -> round pointer
- 
+
     // soft butter yellow: cream in the middle, warmer gold towards the rim
     const pInner = [250, 240, 165];
     const pOuter = [242, 210, 55];
     const pColor = new Array(pN);
- 
+
     let idp = 0;
     for (let y=0; y<pRows; y++){
       for (let x=0; x<pCols; x++){
@@ -408,16 +416,16 @@
         baseAlpha[idp] = t < 1 ? 1 - t*t : 0;
         const m = Math.min(1, t);
         pColor[idp] = pInner.map((v, k) => Math.round(v + (pOuter[k] - v) * m)).join(",");
- 
+
         const fps = minFps + Math.random() * (maxFps - minFps);
         intervals[idp] = 1 / fps;
         timers[idp] = Math.random() * intervals[idp];
- 
+
         currentAlpha[idp] = baseAlpha[idp] * Math.random();
         idp++;
       }
     }
- 
+
     function updatePointer(dt){
       for (let i=0; i<pN; i++){
         timers[i] += dt;
@@ -427,7 +435,7 @@
         }
       }
     }
- 
+
     function renderPointer(){
       ctx.clearRect(0,0,canvas.width,canvas.height);
       let i=0;
@@ -442,30 +450,44 @@
         }
       }
     }
- 
+
     let lastTime = null;
     function pointerLoop(ts){
       if (lastTime === null) lastTime = ts;
       const dt = Math.min(0.1, (ts - lastTime) / 1000);   // clamp: tab switches give huge dt
       lastTime = ts;
- 
+
       updatePointer(dt);
       renderPointer();
       requestAnimationFrame(pointerLoop);
     }
     requestAnimationFrame(pointerLoop);
- 
+
     window.addEventListener("mousemove", (e) => {
       canvas.style.left = e.clientX + "px";
       canvas.style.top  = e.clientY + "px";
     });
   </script>
- 
+
   <script>
     // ===== Random font per-letter across the whole site =====
     // NOTE: runs once on DOMContentLoaded. If you add content dynamically later
     // (e.g. injecting project descriptions via JS), call scrambleText() again
     // on the new nodes, or move this into a reusable function.
+    // FONT_SEED fixes the arrangement: same number = same fonts on every load.
+    // Change the number for another fixed arrangement; null = new random one each load.
+    // (Editing the text shifts the arrangement from the edited letter onwards.)
+    const FONT_SEED = 1;
+
+    function mulberry32(a){
+      return function(){
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        let t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+
     function scrambleText(root){
       const fonts = [
         "Courier New, monospace",
@@ -476,8 +498,15 @@
         "Cambria, serif"
       ];
       const weights = [80, 200, 500];
-      const randomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
- 
+      const rnd = FONT_SEED === null ? Math.random : mulberry32(FONT_SEED);
+
+      // The tagline was rewritten after the arrangement was fixed: it draws from its
+      // own stream, and the main stream skips the draws the old tagline used
+      // (116 letters x font + weight), so every letter after it keeps its font.
+      const taglineRnd = FONT_SEED === null ? Math.random : mulberry32(FONT_SEED + 1);
+      const OLD_TAGLINE_DRAWS = 116 * 2;
+      let taglineSkipped = false;
+
       const walker = document.createTreeWalker(
         root,
         NodeFilter.SHOW_TEXT,
@@ -495,12 +524,20 @@
           }
         }
       );
- 
+
       const nodes = [];
       let n;
       while ((n = walker.nextNode())) nodes.push(n);
- 
+
       for (const textNode of nodes){
+        const inTagline = !!textNode.parentElement.closest(".tagline");
+        if (inTagline && !taglineSkipped){
+          for (let k = 0; k < OLD_TAGLINE_DRAWS; k++) rnd();
+          taglineSkipped = true;
+        }
+        const g = inTagline ? taglineRnd : rnd;
+        const randomItem = (arr) => arr[Math.floor(g() * arr.length)];
+
         const text = textNode.nodeValue;
         const frag = document.createDocumentFragment();
         for (const ch of text){
@@ -514,19 +551,19 @@
         textNode.parentNode.replaceChild(frag, textNode);
       }
     }
- 
+
     window.addEventListener("DOMContentLoaded", () => {
       scrambleText(document.body);
     });
   </script>
- 
+
   <script>
     // ===== Icon lines: two per side, each a bit thicker/thinner, longer/shorter =====
     (() => {
       const W = 14;        // width of the ::before/::after strip (matches CSS)
       const GAP = 5;       // space between the two lines of a side
       const r = (a, b) => a + Math.random() * (b - a);
- 
+
       for (const card of document.querySelectorAll(".icon-card")){
         for (const side of ["l", "r"]){
           const w1 = Math.round(r(1, 3));                       // outer line width
@@ -539,7 +576,7 @@
       }
     })();
   </script>
- 
+
   <script>
     // ===== Background: port of the jit.gen patch =====
     //
@@ -560,17 +597,17 @@
     (() => {
       const bg = document.getElementById("bg-lines");
       const bctx = bg.getContext("2d");
- 
+
       // wide, flat cells like the wallpaper (~97 x 514 cells on a 1512 x 982 screen)
       const CELL_W = 16;
       const CELL_H = 2;
- 
+
       const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
       const TICK_FPS = 12;                    // re-roll rate
       const REROLL = REDUCED ? 0 : 0.03;      // fraction of cells re-rolled per tick (~3 s per cell); 1 = whole frame like jit.gen
- 
+
       const IN1 = 0;                          // in1: +80 keeps mul_22 far above in2.a anyway
- 
+
       // in2.a model
       const IN2_ROWS = 5;                     // in2 resolution: one value every 5 rows
       const P_LOW_LEFT  = 0.15;               // share of LOW points, left 60%
@@ -581,12 +618,12 @@
       const BLUE_CUT = 0.6;                   // share of blue cells knocked out right at the cursor
       const CURSOR_RADIUS = 280;              // px
       const SMOOTH = 0.12;                    // cursor follow
- 
+
       let cols = 0, rows = 0, N = 0, img = null, px = null;
       let cmpR, cmpG, cmpB, sR, sG, sB, u3;   // per cell
       let in2Rows = 0, M = 0, u1, u2, thrC;   // per in2 point
       let dirty = true;
- 
+
       // one jit.gen cell: everything that depends only on noise() and norm
       function roll(i){
         const x = i % cols;
@@ -596,24 +633,24 @@
         const gt4  = nr > 0.2;                                   // gt_4
         const gt14 = y / Math.max(1, rows - 1) > 0.8 ? 1 : 0;    // norm.g > 0.8
         const gt17 = x / Math.max(1, cols - 1) > 0.6 ? 1 : 0;    // norm.a > 0.6 (acts as x in the wallpaper)
- 
+
         cmpR[i] = gt14 + (gt4 ? nr : 0.1);                       // add_15
         cmpG[i] = Math.atan2(gt17 + (na > 0.4 ? nr : 0.6), 4.9); // atan_27
         cmpB[i] = (nr > 0.99 ? nr : 0.6) * (IN1 + 80);           // mul_22
- 
+
         sR[i] = gt4 ? 255 * Math.sin(nr) : 0;                    // sin(switch_5)
         sG[i] = gt4 ? 255 * Math.sin(ng) : 0;
         sB[i] = gt4 ? 255 * Math.sin(nb) : 0;
- 
+
         u3[i] = Math.random();                                   // cursor blue mask
       }
- 
+
       // one in2 point
       function rollIn2(j){
         u1[j] = Math.random();                                   // LOW or HIGH
         u2[j] = Math.random();                                   // value when LOW
       }
- 
+
       function resize(){
         cols = Math.ceil(window.innerWidth / CELL_W);
         rows = Math.ceil(window.innerHeight / CELL_H);
@@ -626,14 +663,14 @@
         sR   = new Float32Array(N); sG   = new Float32Array(N); sB   = new Float32Array(N);
         u3   = new Float32Array(N);
         for (let i = 0; i < N; i++) roll(i);
- 
+
         in2Rows = Math.ceil(rows / IN2_ROWS);
         M = cols * in2Rows;
         u1 = new Float32Array(M); u2 = new Float32Array(M); thrC = new Float32Array(M);
         for (let j = 0; j < M; j++) rollIn2(j);
         dirty = true;
       }
- 
+
       function reroll(){
         if (REROLL >= 1){
           for (let i = 0; i < N; i++) roll(i);
@@ -645,14 +682,14 @@
         const countIn2 = Math.round(M * REROLL);
         for (let k = 0; k < countIn2; k++) rollIn2((Math.random() * M) | 0);
       }
- 
+
       let mx = window.innerWidth * 0.5, my = window.innerHeight * 0.5;
       let tx = mx, ty = my;
       window.addEventListener("pointermove", (e) => { tx = e.clientX; ty = e.clientY; });
- 
+
       function render(){
         const xSplit = 0.6 * Math.max(1, cols - 1);
- 
+
         // in2.a at its own resolution (row-major: in2 row, then column)
         let j = 0;
         for (let r = 0; r < in2Rows; r++){
@@ -665,7 +702,7 @@
             thrC[j] = u1[j] < pLow ? u2[j] * LOW_MAX : HIGH;
           }
         }
- 
+
         const R2 = CURSOR_RADIUS * CURSOR_RADIUS;
         let i = 0, p = 0;
         for (let y = 0; y < rows; y++){
@@ -673,12 +710,12 @@
           const dy = (y + 0.5) * CELL_H - my;
           for (let x = 0; x < cols; x++, i++, p += 4){
             const thr = thrC[a0 + x];                              // in2.a
- 
+
             // blue knocked out near the cursor, fading to nothing at CURSOR_RADIUS
             const dx = (x + 0.5) * CELL_W - mx;
             const d2 = dx*dx + dy*dy;
             const cut = d2 < R2 ? BLUE_CUT * (1 - Math.sqrt(d2) / CURSOR_RADIUS) : 0;
- 
+
             px[p]     = cmpR[i] > thr ? sR[i] : 0;                // gt_29 * ... -> sin
             px[p + 1] = cmpG[i] > thr ? sG[i] : 0;
             px[p + 2] = cmpB[i] > thr && u3[i] >= cut ? sB[i] : 0;
@@ -687,54 +724,54 @@
         }
         bctx.putImageData(img, 0, 0);
       }
- 
+
       let last = 0, acc = 0;
       function loop(ts){
         const dt = last ? (ts - last) / 1000 : 0;
         last = ts;
- 
+
         if (REROLL > 0){
           acc += dt;
           const step = 1 / TICK_FPS;
           if (acc >= step){ acc %= step; reroll(); dirty = true; }
         }
- 
+
         const nx = mx + (tx - mx) * SMOOTH;
         const ny = my + (ty - my) * SMOOTH;
         if (Math.abs(nx - mx) > 0.1 || Math.abs(ny - my) > 0.1) dirty = true;
         mx = nx; my = ny;
- 
+
         if (dirty){ render(); dirty = false; }
         requestAnimationFrame(loop);
       }
- 
+
       window.addEventListener("resize", resize);
       resize();
       requestAnimationFrame(loop);
     })();
   </script>
- 
+
   <script>
     // ===== Edge creatures (7–13), white OR transparent per square (difference blend) =====
     window.addEventListener("DOMContentLoaded", () => {
       const layer = document.getElementById("creature-layer");
       if (!layer) return;
- 
+
       const randInt = (a,b) => Math.floor(a + Math.random()*(b-a+1));
       const rand = (a,b) => a + Math.random()*(b-a);
- 
+
       const creatureCount = randInt(7, 13);
- 
+
       const cols = 10, rows = 10, cellSize = 5;
       const baseW = cols * cellSize; // 50
       const baseH = rows * cellSize; // 50
       const N = cols * rows;
- 
+
       const base = new Float32Array(N);
       const cx = (cols - 1) / 2;
       const cy = (rows - 1) / 2;
       const maxDist = Math.sqrt(cx*cx + cy*cy);
- 
+
       let k = 0;
       for (let y=0; y<rows; y++){
         for (let x=0; x<cols; x++){
@@ -744,13 +781,13 @@
           base[k++] = 1 - t;
         }
       }
- 
+
       function edgePosition(margin=18){
         const w = window.innerWidth;
         const h = window.innerHeight;
         const edge = randInt(0,3);
         let x, y;
- 
+
         if (edge === 0){
           x = rand(margin, w - margin);
           y = rand(margin, margin + 90);
@@ -766,39 +803,39 @@
         }
         return {x,y};
       }
- 
+
       function makeCreature(){
         const c = document.createElement("canvas");
         c.className = "creature";
         c.width = baseW;
         c.height = baseH;
- 
+
         const size = rand(35, 65);
         c.style.width = `${size}px`;
         c.style.height = `${size}px`;
- 
+
         const p = edgePosition();
         c.style.left = `${p.x}px`;
         c.style.top  = `${p.y}px`;
- 
+
         layer.appendChild(c);
- 
+
         const ctx = c.getContext("2d");
         ctx.imageSmoothingEnabled = false;
- 
+
         const alpha = new Float32Array(N);
         const timers = new Float32Array(N);
         const intervals = new Float32Array(N);
- 
+
         const minInterval = 1.6;
         const maxInterval = 6.0;
- 
+
         for (let i=0; i<N; i++){
           intervals[i] = rand(minInterval, maxInterval);
           timers[i] = rand(0, intervals[i]);
           alpha[i] = base[i] * Math.random();
         }
- 
+
         function draw(){
           ctx.clearRect(0,0,baseW,baseH);
           let i = 0;
@@ -813,13 +850,13 @@
             }
           }
         }
- 
+
         let last = null;
         function tick(ts){
           if (last === null) last = ts;
           const dt = Math.min(0.1, (ts - last) / 1000);   // clamp: tab switches give huge dt
           last = ts;
- 
+
           for (let i=0; i<N; i++){
             timers[i] += dt;
             if (timers[i] >= intervals[i]){
@@ -831,41 +868,41 @@
           draw();
           requestAnimationFrame(tick);
         }
- 
+
         draw();
         requestAnimationFrame(tick);
- 
+
         async function lifecycle(){
           while (true){
             c.style.opacity = "0";
- 
+
             await new Promise(r => setTimeout(r, randInt(2200, 9000)));
- 
+
             const p = edgePosition();
             c.style.left = `${p.x}px`;
             c.style.top  = `${p.y}px`;
- 
+
             const size = rand(35, 65);
             c.style.width = `${size}px`;
             c.style.height = `${size}px`;
- 
+
             c.style.opacity = String(rand(0.35, 0.75));
- 
+
             await new Promise(r => setTimeout(r, randInt(1800, 6500)));
- 
+
             c.style.opacity = "0";
           }
         }
         lifecycle();
- 
+
         return c;
       }
- 
+
       const creatures = [];
       for (let i=0; i<creatureCount; i++){
         creatures.push(makeCreature());
       }
- 
+
       window.addEventListener("resize", () => {
         for (const c of creatures){
           const p = edgePosition();
