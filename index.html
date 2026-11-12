@@ -134,14 +134,16 @@
 
     nav{
       display:flex;
-      gap:1.56rem;
+      flex-direction:column;
+      align-items:flex-start;
+      gap:.7rem;
       font-size:1.1rem;
       text-transform:uppercase;
       letter-spacing:.12em;
     }
 
     nav a{
-      color:var(--plate-muted);
+      color:var(--cloud-fg);
       text-decoration:none;
       position:relative;
     }
@@ -157,7 +159,17 @@
       transition:width 150ms ease;
     }
 
-    nav a:hover{ color:var(--plate-fg); }
+    nav a:hover{ color:var(--cloud-fg); }
+
+    /* top-right links cloud: as wide as its longest link (no wrapping when positioned) */
+    .links-cloud{ width:max-content; }
+
+    /* header block = link to the bio */
+    .head-link{
+      display:block;
+      color:inherit;
+      text-decoration:none;
+    }
     nav a:hover::after{ width:100%; }
 
     main{ padding:1.95rem; }
@@ -214,8 +226,9 @@
     /* hover / keyboard focus: two vertical lines on each side.
        Each line's position / size comes from --l1 --l2 (left) and --r1 --r2 (right),
        set per card by the "icon lines" script: "x y / width height". */
-    .icon-card::before,
-    .icon-card::after{
+    .line-link{ position:relative; }
+    .line-link::before,
+    .line-link::after{
       content:"";
       position:absolute;
       top:0;
@@ -224,23 +237,23 @@
       opacity:0;
       transition:opacity 140ms ease;
     }
-    .icon-card::before{
+    .line-link::before{
       left:0;
       background:
         linear-gradient(var(--purple),var(--purple)) var(--l1, 0 0 / 2px 100%) no-repeat,
         linear-gradient(var(--purple),var(--purple)) var(--l2, 7px 0 / 2px 100%) no-repeat;
     }
-    .icon-card::after{
+    .line-link::after{
       right:0;
       background:
         linear-gradient(var(--purple),var(--purple)) var(--r1, 12px 0 / 2px 100%) no-repeat,
         linear-gradient(var(--purple),var(--purple)) var(--r2, 5px 0 / 2px 100%) no-repeat;
     }
-    .icon-card:hover::before,
-    .icon-card:hover::after,
-    .icon-card:focus-visible::before,
-    .icon-card:focus-visible::after{ opacity:1; }
-    .icon-card:focus-visible{ outline:none; }
+    .line-link:hover::before,
+    .line-link:hover::after,
+    .line-link:focus-visible::before,
+    .line-link:focus-visible::after{ opacity:1; }
+    .line-link:focus-visible{ outline:none; }
 
     .icon-card img{
       width:83px;
@@ -332,11 +345,18 @@
 
   <div class="frame">
     <header>
-      <div>
+      <!-- TODO: bio page (bio.html) -->
+      <a class="head-link line-link" href="bio.html" aria-label="Bio">
         <div class="site-title"><span>Matteo Traverso</span></div>
         <div class="tagline">|| sound || free improvisation ||<br>|| data processing || machine interaction ||<br>|| installation ||</div>
-      </div>
+      </a>
 
+      <!-- top-right cloud; its letters draw fonts from their own stream so the rest of the page keeps its fonts -->
+      <nav class="links-cloud" data-font-stream="2" aria-label="Links">
+        <a href="https://www.instagram.com/trawe94/" target="_blank" rel="noopener">Instagram</a>
+        <a href="https://soundcloud.com/3444444" target="_blank" rel="noopener">SoundCloud</a>
+        <a href="mailto:matteo.traverso02@gmail.com">Contact</a>
+      </nav>
     </header>
 
     <main>
@@ -367,9 +387,6 @@
     <footer id="contact">
       <div>© <span id="year"></span> Matteo Traverso</div>
       <div>
-        <a href="mailto:matteo.traverso02@gmail.com">matteo.traverso02@gmail.com</a> ·
-        <a href="https://www.instagram.com/trawe94/" target="_blank" rel="noopener">Instagram</a> ·
-        <a href="https://soundcloud.com/3444444" target="_blank" rel="noopener">SoundCloud</a> ·
         <span class="link-soon">Newsletter</span><!-- TODO: newsletter link -->
       </div>
     </footer>
@@ -554,6 +571,14 @@
       // own stream, and the main stream skips the draws the old tagline used
       // (116 letters x font + weight), so every letter after it keeps its font.
       const taglineRnd = FONT_SEED === null ? Math.random : mulberry32(FONT_SEED + 1);
+
+      // text added later inside an element with data-font-stream="n" gets its own
+      // stream too, so adding it doesn't shift the fonts anywhere else
+      const streams = new Map();
+      const streamFor = (el) => {
+        if (!streams.has(el)) streams.set(el, FONT_SEED === null ? Math.random : mulberry32(FONT_SEED + 100 + Number(el.dataset.fontStream)));
+        return streams.get(el);
+      };
       // + nav (Works/About/Contact, 17 letters) and heading (exploring boundaries /
       //   of numb senses, 34 letters) removed later: their draws are skipped too,
       //   and the icon captions (60 letters) while they're commented out.
@@ -589,7 +614,8 @@
           for (let k = 0; k < OLD_TAGLINE_DRAWS; k++) rnd();
           taglineSkipped = true;
         }
-        const g = inTagline ? taglineRnd : rnd;
+        const own = textNode.parentElement.closest("[data-font-stream]");
+        const g = inTagline ? taglineRnd : own ? streamFor(own) : rnd;
         const randomItem = (arr) => arr[Math.floor(g() * arr.length)];
 
         const text = textNode.nodeValue;
@@ -635,6 +661,7 @@
       const LAYOUT_SEED = 1;            // same number = same layout; null = new layout each load
       const SCATTER_MIN_WIDTH = 900;    // narrower screens keep the simple stacked layout
       const CLEAR = 70;                 // px kept free around each window (room for its cloud)
+      const LINKS_MARGIN = 90;          // px between the links cloud and the right edge of the page
 
       // --- clouds
       const CELL = 5;                   // css px per cloud pixel (like the creatures)
@@ -677,9 +704,10 @@
       function placeWindows(){
         const cards = [...document.querySelectorAll(".icon-card")];
         const area = document.getElementById("works");
-        const head = document.querySelector("header > div");
+        const head = document.querySelector(".head-link");
+        const links = document.querySelector(".links-cloud");
         if (!cards.length || !area || !head) return;
-        for (const c of cards){ c.style.position = ""; c.style.left = ""; c.style.top = ""; }
+        for (const c of [...cards, links].filter(Boolean)){ c.style.position = ""; c.style.left = ""; c.style.top = ""; }
         area.style.height = "";
         if (window.innerWidth < SCATTER_MIN_WIDTH) return;
 
@@ -690,6 +718,16 @@
         const top0 = h.B - fr.top + CLEAR;                                     // below the header's cloud
         const areaH = Math.max(560, window.innerHeight - (h.B - fr.top) - 140);
         const taken = [{ L: h.L - fr.left - CLEAR, R: h.R - fr.left + CLEAR, T: -1e5, B: top0 }];
+
+        // links cloud: top right of the page, level with the header text
+        if (links){
+          links.style.position = "absolute";
+          const lx = -fr.left + vw - LINKS_MARGIN - links.offsetWidth;
+          const ly = h.T - fr.top;
+          links.style.left = lx + "px";
+          links.style.top = ly + "px";
+          taken.push({ L: lx - CLEAR, R: lx + links.offsetWidth + CLEAR, T: -1e5, B: ly + links.offsetHeight + CLEAR });
+        }
         let bottom = top0;
 
         for (const c of cards){
@@ -815,7 +853,7 @@
         flick = new Float32Array(N);
         for (let k = 0; k < N; k++) flick[k] = Math.random();
 
-        const hosts = [document.querySelector("header > div"), ...document.querySelectorAll(".icon-card")].filter(Boolean);
+        const hosts = [document.querySelector(".head-link"), document.querySelector(".links-cloud"), ...document.querySelectorAll(".icon-card")].filter(Boolean);
         clouds = hosts.map(el => makeCloud(el, fr));
         draw();
       }
@@ -876,7 +914,7 @@
       const GAP = 5;       // space between the two lines of a side
       const r = (a, b) => a + Math.random() * (b - a);
 
-      for (const card of document.querySelectorAll(".icon-card")){
+      for (const card of document.querySelectorAll(".line-link")){
         for (const side of ["l", "r"]){
           const w1 = Math.round(r(1, 3));                       // outer line width
           const w2 = Math.round(r(1, 3));                       // inner line width
