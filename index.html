@@ -77,7 +77,8 @@
       z-index:2;
     }
 
-    /* Pointer on top: yellow pixel creature (10x10 cells scaled up) */
+    /* Pointer: yellow pixel creature. It sits inside .frame at z-index -1, after the
+       cloud canvas: above the background and the clouds, below texts and icons. */
     #grad-square{
       position:fixed;
       width:100px;height:100px;
@@ -85,7 +86,7 @@
       transform:translate(-50%,-50%);
       image-rendering:pixelated;
       pointer-events:none;
-      z-index:9999;
+      z-index:-1;
     }
 
     /* Clouds: one pixel canvas behind the frame's content (see the Clouds script) */
@@ -223,37 +224,27 @@
       color:var(--cloud-fg);
     }
 
-    /* hover / keyboard focus: two vertical lines on each side.
-       Each line's position / size comes from --l1 --l2 (left) and --r1 --r2 (right),
-       set per card by the "icon lines" script: "x y / width height". */
-    .line-link{ position:relative; }
-    .line-link::before,
-    .line-link::after{
+    /* hover / keyboard focus: the same pink underline as the links cloud,
+       under the name (bio link) and under each window's caption */
+    .head-link .site-title > span,
+    .icon-card .icon-caption{ position:relative; }
+    .head-link .site-title > span::after,
+    .icon-card .icon-caption::after{
       content:"";
       position:absolute;
-      top:0;
-      bottom:0;
-      width:14px;
-      opacity:0;
-      transition:opacity 140ms ease;
-    }
-    .line-link::before{
       left:0;
-      background:
-        linear-gradient(var(--purple),var(--purple)) var(--l1, 0 0 / 2px 100%) no-repeat,
-        linear-gradient(var(--purple),var(--purple)) var(--l2, 7px 0 / 2px 100%) no-repeat;
+      bottom:-.12rem;
+      width:0;
+      height:2px;
+      background:var(--accent);
+      transition:width 150ms ease;
     }
-    .line-link::after{
-      right:0;
-      background:
-        linear-gradient(var(--purple),var(--purple)) var(--r1, 12px 0 / 2px 100%) no-repeat,
-        linear-gradient(var(--purple),var(--purple)) var(--r2, 5px 0 / 2px 100%) no-repeat;
-    }
-    .line-link:hover::before,
-    .line-link:hover::after,
-    .line-link:focus-visible::before,
-    .line-link:focus-visible::after{ opacity:1; }
-    .line-link:focus-visible{ outline:none; }
+    .head-link:hover .site-title > span::after,
+    .head-link:focus-visible .site-title > span::after,
+    .icon-card:hover .icon-caption::after,
+    .icon-card:focus-visible .icon-caption::after{ width:100%; }
+    .head-link:focus-visible,
+    .icon-card:focus-visible{ outline:none; }
 
     .icon-card img{
       width:83px;
@@ -296,19 +287,6 @@
       width:100%;
     }
 
-    footer{
-      padding:0 1.95rem 1.95rem;
-      border-top:1px solid var(--border);
-      font-size:1.01rem;
-      color:var(--plate-muted);
-      display:flex;
-      flex-wrap:wrap;
-      justify-content:space-between;
-      gap:.98rem;
-    }
-
-    footer a{ color:var(--plate-muted); text-decoration:none; }
-    footer a:hover{ color:var(--plate-fg); text-decoration:underline; }
 
     /* per-letter spans */
     .random-letter{
@@ -326,7 +304,7 @@
     }
 
     /* Keep links clickable as one unit even though their text is split into spans */
-    nav a, footer a, .link-soon, .icon-caption{
+    nav a, .icon-caption{
       display:inline-flex;
       flex-wrap:wrap;
     }
@@ -340,13 +318,12 @@
   <!-- Creatures layer -->
   <div id="creature-layer" aria-hidden="true"></div>
 
-  <!-- Pointer -->
-  <canvas id="grad-square" width="60" height="60" aria-hidden="true"></canvas>
-
   <div class="frame">
+    <!-- Pointer (inside the frame so it can sit between the clouds and the text) -->
+    <canvas id="grad-square" width="60" height="60" aria-hidden="true"></canvas>
     <header>
       <!-- TODO: bio page (bio.html) -->
-      <a class="head-link line-link" href="bio.html" aria-label="Bio">
+      <a class="head-link" href="bio.html" aria-label="Bio">
         <div class="site-title"><span>Matteo Traverso</span></div>
         <div class="tagline">|| sound || free improvisation ||<br>|| data processing || machine interaction ||<br>|| installation ||</div>
       </a>
@@ -384,12 +361,6 @@
       </div>
     </main>
 
-    <footer id="contact">
-      <div>© <span id="year"></span> Matteo Traverso</div>
-      <div>
-        <span class="link-soon">Newsletter</span><!-- TODO: newsletter link -->
-      </div>
-    </footer>
   </div>
 
   <script>
@@ -414,10 +385,6 @@
         return 0;
       };
     })();
-  </script>
-
-  <script>
-    document.getElementById("year").textContent = new Date().getFullYear();
   </script>
 
   <script>
@@ -746,7 +713,7 @@
           bottom = Math.max(bottom, y + ht + CLEAR);
         }
         const areaTop = area.getBoundingClientRect().top - fr.top;
-        area.style.height = (bottom - areaTop) + "px";                         // footer goes below
+        area.style.height = (bottom - areaTop) + "px";                         // page ends below the windows
       }
 
       // ---------- clouds ----------
@@ -905,26 +872,6 @@
       window.addEventListener("load", build);                              // images loaded: sizes final
       if (document.fonts) document.fonts.ready.then(build);                // fonts loaded: sizes final
     });
-  </script>
-
-  <script>
-    // ===== Icon lines: two per side, each a bit thicker/thinner, longer/shorter =====
-    (() => {
-      const W = 14;        // width of the ::before/::after strip (matches CSS)
-      const GAP = 5;       // space between the two lines of a side
-      const r = (a, b) => a + Math.random() * (b - a);
-
-      for (const card of document.querySelectorAll(".line-link")){
-        for (const side of ["l", "r"]){
-          const w1 = Math.round(r(1, 3));                       // outer line width
-          const w2 = Math.round(r(1, 3));                       // inner line width
-          const x1 = side === "l" ? 0 : W - w1;
-          const x2 = side === "l" ? w1 + GAP : W - w1 - GAP - w2;
-          card.style.setProperty(`--${side}1`, `${x1}px ${r(0, 100).toFixed(0)}% / ${w1}px ${r(70, 100).toFixed(0)}%`);
-          card.style.setProperty(`--${side}2`, `${x2}px ${r(0, 100).toFixed(0)}% / ${w2}px ${r(50, 90).toFixed(0)}%`);
-        }
-      }
-    })();
   </script>
 
   <script>
