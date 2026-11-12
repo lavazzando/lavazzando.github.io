@@ -245,7 +245,7 @@
     .icon-card img{
       width:83px;
       height:83px;
-      object-fit:cover;
+      object-fit:contain;              /* whole drawing visible, whatever its shape */
       image-rendering:auto;
       display:block;
       margin-bottom:1.04rem;
@@ -344,7 +344,7 @@
               </a>
 
               <a class="icon-card" href="#installations" aria-label="Installations & performances">
-                <img src="audio/insta-perf-1024.png" alt="" />
+                <img src="audio/miaolo.png" alt="" />
                 <div class="icon-caption"><span class="cap-line">installations &amp; </span><span class="cap-line">performances</span></div>
               </a>
 
@@ -368,6 +368,30 @@
       </div>
     </footer>
   </div>
+
+  <script>
+    // ===== Whole page at 15 fps =====
+    // Every animation loop below (background, clouds, pointer, creatures) asks for
+    // frames with requestAnimationFrame; this hands them out at most PAGE_FPS times
+    // a second, the pointer's movement included.
+    (() => {
+      const PAGE_FPS = 15;
+      const step = 1000 / PAGE_FPS;
+      const raf = window.requestAnimationFrame.bind(window);
+      let queue = [], pending = false, last = 0;
+      function pump(ts){
+        if (ts - last < step - 1){ raf(pump); return; }
+        last = ts - last > 2 * step ? ts : last + step;      // keep a steady beat, resync after pauses
+        const q = queue; queue = []; pending = false;
+        for (const cb of q) cb(ts);
+      }
+      window.requestAnimationFrame = (cb) => {
+        queue.push(cb);
+        if (!pending){ pending = true; raf(pump); }
+        return 0;
+      };
+    })();
+  </script>
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
@@ -394,11 +418,13 @@
 
     const baseAlpha = new Float32Array(pN);
     const currentAlpha = new Float32Array(pN);
+    const targetAlpha = new Float32Array(pN);   // each pixel fades towards its new value
     const intervals = new Float32Array(pN);
     const timers = new Float32Array(pN);
 
     const minFps = 0.01;
-    const maxFps = 8;
+    const maxFps = 6.5;          // fastest a pixel picks a new value (per second)
+    const PTR_FADE = 0.27;       // seconds: how slowly a pixel fades to its new value
 
     const pcx = (pCols - 1) / 2;
     const pcy = (pRows - 1) / 2;
@@ -424,18 +450,20 @@
         intervals[idp] = 1 / fps;
         timers[idp] = Math.random() * intervals[idp];
 
-        currentAlpha[idp] = baseAlpha[idp] * Math.random();
+        currentAlpha[idp] = targetAlpha[idp] = baseAlpha[idp] * Math.random();
         idp++;
       }
     }
 
     function updatePointer(dt){
+      const k = 1 - Math.exp(-dt / PTR_FADE);
       for (let i=0; i<pN; i++){
         timers[i] += dt;
         if (timers[i] >= intervals[i]){
           timers[i] %= intervals[i];   // modulo, not subtract: no catch-up burst after a pause
-          currentAlpha[i] = baseAlpha[i] * Math.random();
+          targetAlpha[i] = baseAlpha[i] * Math.random();
         }
+        currentAlpha[i] += (targetAlpha[i] - currentAlpha[i]) * k;
       }
     }
 
@@ -446,7 +474,7 @@
         for (let x=0; x<pCols; x++){
           const a = currentAlpha[i];
           if (a > 0){
-            ctx.fillStyle = `rgba(${pColor[i]},${Math.min(1, a * 1.8)})`;   // alpha boosted
+            ctx.fillStyle = `rgba(${pColor[i]},${Math.min(1, a * 2.52)})`;   // alpha boosted (1.8 x 1.4)
             ctx.fillRect(x*pCell, y*pCell, pCell, pCell);
           }
           i++;
@@ -454,11 +482,23 @@
       }
     }
 
+    // The pointer moves only on the page's 15 fps frames, easing towards the mouse.
+    const POINTER_FOLLOW = 0.55;   // share of the distance covered per 15 fps frame (1 = jump straight there)
+    let ptrX = null, ptrY = null, ptrTX = 0, ptrTY = 0;
+
     let lastTime = null;
     function pointerLoop(ts){
       if (lastTime === null) lastTime = ts;
       const dt = Math.min(0.1, (ts - lastTime) / 1000);   // clamp: tab switches give huge dt
       lastTime = ts;
+
+      if (ptrX !== null){
+        const k = 1 - Math.pow(1 - POINTER_FOLLOW, dt * 15);
+        ptrX += (ptrTX - ptrX) * k;
+        ptrY += (ptrTY - ptrY) * k;
+        canvas.style.left = ptrX + "px";
+        canvas.style.top  = ptrY + "px";
+      }
 
       updatePointer(dt);
       renderPointer();
@@ -467,8 +507,9 @@
     requestAnimationFrame(pointerLoop);
 
     window.addEventListener("mousemove", (e) => {
-      canvas.style.left = e.clientX + "px";
-      canvas.style.top  = e.clientY + "px";
+      ptrTX = e.clientX;
+      ptrTY = e.clientY;
+      if (ptrX === null){ ptrX = ptrTX; ptrY = ptrTY; }   // first move: start where the mouse is
     });
   </script>
 
@@ -883,7 +924,7 @@
       const CURSOR_BOOST = 0.5;               // extra LOW share right at the cursor (0 = no interaction)
       const BLUE_CUT = 0.6;                   // share of blue cells knocked out right at the cursor
       const CURSOR_RADIUS = 280;              // px
-      const SMOOTH = 0.12;                    // cursor follow
+      const SMOOTH = 0.12;                    // cursor follow (per 1/60 s)
 
       const N = COLS * ROWS, M = IN2_COLS * IN2_ROWS;
       bg.width = COLS;
@@ -1004,8 +1045,9 @@
           if (acc >= step){ acc %= step; reroll(); dirty = true; }
         }
 
-        const nx = mx + (tx - mx) * SMOOTH;
-        const ny = my + (ty - my) * SMOOTH;
+        const k = 1 - Math.pow(1 - SMOOTH, dt * 60);              // same follow speed at any frame rate
+        const nx = mx + (tx - mx) * k;
+        const ny = my + (ty - my) * k;
         if (Math.abs(nx - mx) > 0.1 || Math.abs(ny - my) > 0.1) dirty = true;
         mx = nx; my = ny;
 
