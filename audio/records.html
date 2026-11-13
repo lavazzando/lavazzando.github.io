@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Records – Matteo Traverso</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <!-- Background (jit.gen port) -->
+  <canvas id="bg-lines" aria-hidden="true"></canvas>
+
+  <!-- Creatures layer -->
+  <div id="creature-layer" aria-hidden="true"></div>
+
+  <div class="frame">
+    <!-- Pointer (inside the frame so it can sit between the clouds and the text) -->
+    <canvas id="grad-square" width="60" height="60" aria-hidden="true"></canvas>
+    <header>
+      <!-- on the sub-pages the name leads back home -->
+      <a class="head-link" href="index.html" aria-label="Home">
+        <div class="site-title"><span>Matteo Traverso</span></div>
+        <div class="tagline">|| sound || free improvisation ||<br>|| data processing || machine interaction ||<br>|| installation ||</div>
+      </a>
+
+      <!-- top-right cloud; its letters draw fonts from their own stream so the rest of the page keeps its fonts -->
+      <nav class="links-cloud" data-font-stream="2" aria-label="Links">
+        <a href="https://www.instagram.com/trawe94/" target="_blank" rel="noopener">Instagram</a>
+        <a href="https://soundcloud.com/3444444" target="_blank" rel="noopener">SoundCloud</a>
+        <a href="mailto:matteo.traverso02@gmail.com">Contact</a>
+        <a href="bio.html">Bio</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="records scatter-area" data-clear="130" aria-label="Records">
+        <!--
+          One <article> per record. To add one: copy the whole block and change
+          - the album number in the player address: on the record's Bandcamp page,
+            Share / Embed, then look for album=NUMBER in the code it gives you
+          - the title attribute, the caption lines and the Bandcamp / Tidal links
+        -->
+        <article class="record cloud scatter">
+          <iframe title="Exoplanet by Inopia"
+                  src="https://bandcamp.com/EmbeddedPlayer/album=382165766/size=large/bgcol=ffffff/linkcol=ff4f9a/tracklist=false/transparent=true/"
+                  seamless loading="lazy"></iframe>
+          <div class="record-caption">
+            <span class="cap-line">Inopia</span>
+            <span class="cap-line">Exoplanet</span>
+            <span class="cap-line">Setola di Maiale · 2025</span>
+            <span class="cap-line">modular &amp; digital synths, mix</span>
+            <span class="cap-line record-links">
+              <a href="https://pascalburbach.bandcamp.com/album/exoplanet" target="_blank" rel="noopener">Bandcamp</a>
+              <a href="https://tidal.com/album/410620603/u" target="_blank" rel="noopener">Tidal</a>
+            </span>
+          </div>
+        </article>
+
+        <article class="record cloud scatter">
+          <iframe title="reset.restArt by Matteo Traverso"
+                  src="https://bandcamp.com/EmbeddedPlayer/album=1213659942/size=large/bgcol=ffffff/linkcol=ff4f9a/tracklist=false/transparent=true/"
+                  seamless loading="lazy"></iframe>
+          <div class="record-caption">
+            <span class="cap-line">Matteo Traverso</span>
+            <span class="cap-line">reset.restArt</span>
+            <span class="cap-line">ear-cookie · 2024</span>
+            <span class="cap-line record-links">
+              <a href="https://ear-cookie.bandcamp.com/album/reset-restart" target="_blank" rel="noopener">Bandcamp</a>
+              <a href="https://tidal.com/album/361866843/u" target="_blank" rel="noopener">Tidal</a>
+            </span>
+          </div>
+        </article>
+
+        <!-- off: remove the comment wrapper to show it again
+        <article class="record cloud scatter">
+          <iframe title="like I need a tension by Eugenia Post Meridiem"
+                  src="https://bandcamp.com/EmbeddedPlayer/album=1651730751/size=large/bgcol=ffffff/linkcol=ff4f9a/tracklist=false/transparent=true/"
+                  seamless loading="lazy"></iframe>
+          <div class="record-caption">
+            <span class="cap-line">Eugenia Post Meridiem</span>
+            <span class="cap-line">like I need a tension</span>
+            <span class="cap-line">Bronson Recordings · 2022</span>
+            <span class="cap-line">bass, modular synth</span>
+          </div>
+        </article>
+        -->
+      </section>
+    </main>
+
+  </div>
+
+  <script src="site.js"></script>
+</body>
+</html>
